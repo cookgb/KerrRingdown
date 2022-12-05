@@ -8,14 +8,54 @@
 (*Begin ReadWaveforms Package*)
 
 
-BeginPackage["KerrRingdownFitting`"]
+BeginPackage["ReadWaveforms`"]
 
 
 (* ::Section:: *)
 (*Documentation of External Functions*)
 
 
-(* ::Section::Closed:: *)
+(* ::Subsection::Closed:: *)
+(*Simulation Data Routines *)
+
+
+ReadWaveforms::usage=
+"ReadWaveforms[\!\(\*
+StyleBox[\"dir\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"lm\",\nFontSlant->\"Italic\"]\),DataType\[Rule]\!\(\*
+StyleBox[\"type\",\nFontSlant->\"Italic\"]\)] : Read in waveform data from a Numerical Relativity simulation.\n"<>
+"\t \!\(\*
+StyleBox[\"dir\",\nFontSlant->\"Italic\"]\) : String containing the full path to the directory containing simulation data\n"<>
+"\t \!\(\*
+StyleBox[\"lm\",\nFontSlant->\"Italic\"]\) : List of {l,m} pairs of spin-weighted spherical haromonic modes to import\n"<>
+"\t \!\(\*
+StyleBox[\"type\",\nFontSlant->\"Italic\"]\) : The type of data in file.  This option must be set.\n\n"<>
+"Options:\n"<>
+"\t DataType : Defaults to \!\(\*
+StyleBox[\"None\",\nFontSlant->\"Italic\"]\)\!\(\*
+StyleBox[\".\",\nFontSlant->\"Italic\"]\)  Defined types: SXS\n"<>
+"\t T0 : Defaults to 0.  Simulation time to set as T0 for ringdown fitting.\n"<>
+"\t DataRange : Defaults to All.  Index range of time series data to read into memory.\n"<>
+"\t RotateFrame : Defaults to False.  When it is set to True, a rotational transformation is done on the signal\n"<>
+"\t to make the spin direction aligned with the QNM coordinates. When it is set to False, the orignal signal is used.\n\n"<>
+"Additional options for each DataType. It can take the options from both SXSWaveform and SXSCCEWaveform. \n"<>
+"\t SXS data:\n"<>
+"\t\t SXSRNext : Defaults to 2.  Valid values 0, 2, 3, 4.\n"<>
+"\t\t WaveformType: Defaults to Metric.  Valid values Psi4,Metric\n"<>
+"\t\t FrameType : Defaults to Raw.  Valid values Raw,CoM."<>
+"\t SXS_CCE data:\n"<>
+"\t\t SXSRNext : Defaults to 2. CCE radii of a simulation or waveform extrapolation order to use.\n"<>
+"\t\t WaveformType: Defaults to Metric.  Valid values Psi4, News, Metric\n"<>
+"\t\t FrameType : Defaults to CoM.  Valid values CoM, Mem"<>
+"\t Extrapolated : Defaults to False.\n"<>
+"\t\t True : Extrapolated data is used. Read from {WaveformType}_Extrapolated_N{RNext}_CoM.h5\n"<>
+"\t\t False : Extrapolated data is not used. CCE radii of a simulation is read in from RNext. Read from {WaveformType}_BondiCce_R{RNext}_CoM.h5\n"<>
+"\t Superrest : Defaults to False.\n"<>
+"\t\t True : Signal has been transformed to Super rest frame. Read from {WaveformType}..._CoM_Bondi.h5\n"<>
+"\t\t False : Signal has not been tranformed to Super rest frame. Read from {Waveforminfo}..._CoM.h5\n"
+
+
+(* ::Section:: *)
 (*Simulation Data Routines*)
 
 
