@@ -1,17 +1,17 @@
 (* ::Package:: *)
 
 (* ::Chapter:: *)
-(*Simulation Data Routines Package*)
+(*ReadWaveforms Package*)
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Begin ReadWaveforms Package*)
 
 
 BeginPackage["ReadWaveforms`"]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Documentation of External Functions*)
 
 
@@ -55,7 +55,62 @@ StyleBox[\".\",\nFontSlant->\"Italic\"]\)  Defined types: SXS\n"<>
 "\t\t False : Signal has not been tranformed to Super rest frame. Read from {Waveforminfo}..._CoM.h5\n"
 
 
-(* ::Section:: *)
+TimeIndex::usage=
+"TimeIndex[\!\(\*
+StyleBox[\"t\",\nFontSlant->\"Italic\"]\)] : Find the time index for a specific code time \!\(\*
+StyleBox[\"t\",\nFontSlant->\"Italic\"]\) within the current series data stored in memeory."
+
+
+PlotClm::usage=
+"PlotClm[\!\(\*
+StyleBox[\"l\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"m\",\nFontSlant->\"Italic\"]\)] : Returns a list of {t,\!\(\*SubscriptBox[\(C\), \(lm\)]\)} pairs suitable for plotting the full complex Numerical Relativity  "<>
+"data for mode \!\(\*SubscriptBox[\(C\), \(lm\)]\)."
+
+
+PlotReClm::usage=
+"PlotReClm[\!\(\*
+StyleBox[\"l\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"m\",\nFontSlant->\"Italic\"]\)] : Returns a list of {t,Re[\!\(\*SubscriptBox[\(C\), \(lm\)]\)]} pairs suitable for plotting the Real part of the Numerical Relativity  "<>
+"data for mode \!\(\*SubscriptBox[\(C\), \(lm\)]\)."
+
+
+PlotImClm::usage=
+"PlotImClm[\!\(\*
+StyleBox[\"l\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"m\",\nFontSlant->\"Italic\"]\)] : Returns a list of {t,Im[\!\(\*SubscriptBox[\(C\), \(lm\)]\)]} pairs suitable for plotting the Imaginary part of the Numerical Relativity  "<>
+"data for mode \!\(\*SubscriptBox[\(C\), \(lm\)]\)."
+
+
+PlotAbsClm::usage=
+"PlotAbsClm[\!\(\*
+StyleBox[\"l\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"m\",\nFontSlant->\"Italic\"]\)] : Returns a list of {t,|\!\(\*SubscriptBox[\(C\), \(lm\)]\)|} pairs suitable for plotting the Magnitude of the Numerical Relativity  "<>
+"data for mode \!\(\*SubscriptBox[\(C\), \(lm\)]\)."
+
+
+PlotSumAbs2Clm::usage=
+"PlotSumAbs2Clm[\!\(\*
+StyleBox[\"lmlist\",\nFontSlant->\"Italic\"]\)] : Returns a list of {t,\!\(\*
+StyleBox[\"\[CapitalSigma]\",\nFontSize->24]\)|\!\(\*SubscriptBox[\(C\), \(lm\)]\)\!\(\*SuperscriptBox[\(|\), \(2\)]\)} pairs suitable for plotting the Sum of the Square-Magnitudes of the Numerical Relativity  "<>
+"data for a list of modes {\!\(\*SubscriptBox[\(C\), \(lm\)]\)}.  \!\(\*
+StyleBox[\"lmlist\",\nFontSlant->\"Italic\"]\) has the form {{\!\(\*SubscriptBox[\(l\), \(1\)]\),\!\(\*SubscriptBox[\(m\), \(1\)]\)},{\!\(\*SubscriptBox[\(l\), \(2\)]\),\!\(\*SubscriptBox[\(m\), \(2\)]\)},...}"
+
+
+(* ::Subsection::Closed:: *)
+(*Reserved Globals*)
+
+
+Protect[T0,DataType,SXSRNext,RotateFrame,\[Theta],\[Phi]];
+
+
+Begin["`Private`"]
+
+
+Protect[KRFtime,KRFC];
+
+
+(* ::Section::Closed:: *)
 (*Simulation Data Routines*)
 
 
@@ -93,3 +148,31 @@ Module[{i,l,m,t,mode,lmodes,mmodes,t0=OptionValue[T0],
 	,{l,lmodes}];
    Protect[KRFtime,KRFC];
 ]
+
+
+TimeIndex[t_]:=If[t>=KRFtime[[-1]],Length[KRFtime],If[t<=KRFtime[[1]],1,SequencePosition[KRFtime,{x_/;x>=t},1][[1,1]]]]
+
+
+PlotClm[l_,m_]:=Transpose[{KRFtime,KRFC[l,m]}]
+
+
+PlotReClm[l_,m_]:=Transpose[{KRFtime,Re[KRFC[l,m]]}]
+
+
+PlotImClm[l_,m_]:=Transpose[{KRFtime,Im[KRFC[l,m]]}]
+
+
+PlotAbsClm[l_,m_]:=Transpose[{KRFtime,Abs[KRFC[l,m]]}]
+
+
+PlotSumAbs2Clm[lm_List]:=Transpose[{KRFtime,Total[Function[x,Abs[KRFC[x[[1]],x[[2]]]]^2]/@lm]}]
+
+
+(* ::Section::Closed:: *)
+(*End of ReadWaveforms Package*)
+
+
+End[] (* `Private` *)
+
+
+EndPackage[]

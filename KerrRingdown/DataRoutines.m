@@ -1,25 +1,93 @@
 (* ::Package:: *)
 
 (* ::Chapter:: *)
-(*SXS Data Routines Package*)
+(*Data Routines Package*)
 
 
-(* ::Section:: *)
-(*Begin SXSDataRoutines Package*)
+(* ::Section::Closed:: *)
+(*Begin DataRoutines Package*)
 
 
-BeginPackage["SXSDataRoutines`"]
+BeginPackage["DataRoutines`"]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Documentation of External Functions*)
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*SXS Data Routines*)
 
 
-(* ::Section:: *)
+SXSWaveform::usage=
+"SXSWaveform[\!\(\*
+StyleBox[\"sxsdir\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"Next\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"l\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"m\",\nFontSlant->\"Italic\"]\)]\n" <>
+"\t \!\(\*
+StyleBox[\"sxsdir\",\nFontSlant->\"Italic\"]\) : String containing the full path to the directory containing simulation data\n"<>
+"\t \!\(\*
+StyleBox[\"Next\",\nFontSlant->\"Italic\"]\) : Waveform extrapolation to use:\n"<>
+"\t\t 0 : Outermost extraction radius.\n" <>
+"\t\t 2 : Extrapolated N2.\n"<>
+"\t\t 3 : Extrapolated N3.\n"<>
+"\t\t 4 : Extrapolated N4.\n"<>
+"\t \!\(\*
+StyleBox[\"l\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"m\",\nFontSlant->\"Italic\"]\) : Spin-weighted spherical harmonic indices of mode to be read into memeory.\n\n"<>
+"Options:\n"<>
+"\t WaveformType : Defaults to Metric.\n"<>
+"\t\t Psi4 : Read from rMPsi4 files\n"<>
+"\t\t Metric : Read from rhoverM files\n"<>
+"\t FrameType : Defaults to Raw.\n"<>
+"\t\t Raw : Read from {WaveformType}_Asymptotic_GeometricUnits.h5\n"<>
+"\t\t CoM : Read from {WaveformType}_Asymptotic_GeometricUnits_CoM.h5"
+
+
+SXSCCEWaveform::usage=
+"SXSCCEWaveform[\!\(\*
+StyleBox[\"sxsdir\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"RNext\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"l\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"m\",\nFontSlant->\"Italic\"]\)]\n" <>
+"\t \!\(\*
+StyleBox[\"sxsdir\",\nFontSlant->\"Italic\"]\) : String containing the full path to the directory containing simulation data\n"<>
+"\t \!\(\*
+StyleBox[\"RNext\",\nFontSlant->\"Italic\"]\) : CCE radii of a simulation or waveform extrapolation order to use.\n"<>
+"\t \!\(\*
+StyleBox[\"l\",\nFontSlant->\"Italic\"]\),\!\(\*
+StyleBox[\"m\",\nFontSlant->\"Italic\"]\) : Spin-weighted spherical harmonic indices of mode to be read into memeory.\n\n"<>
+"Options:\n"<>
+"\t WaveformType : Defaults to Metric.\n"<>
+"\t\t Psi4 : Read from rMPsi4 files\n"<>
+"\t\t News : Read from r2News files\n"<>
+"\t\t Metric : Read from rhoverM files\n"<>
+"\t FrameType : Defaults to CoM.\n"<>
+"\t\t CoM : Read from {WaveformType}..._CoM.h5\n"<>
+"\t\t Mem : Read from {WaveformType}..._CoM_Mem.h5\n"<>
+"\t Extrapolated : Defaults to False.\n"<>
+"\t\t True : Extrapolated data is used. Read from {WaveformType}_Extrapolated_N{RNext}_CoM.h5\n"<>
+"\t\t False : Extrapolated data is not used. CCE radii of a simulation is read in from RNext. Read from {WaveformType}_BondiCce_R{RNext}_CoM.h5\n"<>
+"\t Superrest : Defaults to False.\n"<>
+"\t\t True : Signal has been transformed to Super rest frame. Read from {WaveformType}..._CoM_Bondi.h5\n"<>
+"\t\t False : Signal has not been tranformed to Super rest frame. Read from {Waveforminfo}..._CoM.h5\n"
+
+
+SXSFinalProperties::usage=""
+
+
+(* ::Subsection::Closed:: *)
+(*Reserved Globals*)
+
+
+Protect[WaveformType,Psi4,Metric,News,FrameType,Raw,CoM,ReM,Extrapolated,Superrest,Mem];
+
+
+Begin["`Private`"]
+
+
+(* ::Section::Closed:: *)
 (*SXS Data Routines *)
 
 
@@ -109,3 +177,37 @@ Module[{\[Gamma],\[Gamma]\[Chi],j={jx,jy,jz},v={vx,vy,vz},a},
    ArcTan[a[[3]],Sqrt[a[[1]]^2+a[[2]]^2]],
    If[a[[1]]==a[[2]]==0,0.`,ArcTan[a[[1]],a[[2]]]]}
 ]
+
+
+(* ::Section::Closed:: *)
+(*BHPT Data Routines*)
+
+
+Options[BHPTWaveform] = {WaveformType->Psi4,DataRange->All};
+BHPTWaveform[h5name_String,l_Integer,m_Integer,OptionsPattern[]]:= 
+Module[{mname,lname,Yname,WFname,rawdat,
+        range=OptionValue[DataRange],
+        wftype=SymbolName[OptionValue[WaveformType]]},
+   mname = If[m<0,"-"<>ToString[Abs[m]],ToString[m]];
+   lname = ToString[l];
+   Yname = "Y_l"<>lname<>"_m"<>mname<>".dat";
+   WFname = Switch[wftype,"Psi4","/DmuPsi4/",
+                          "Metric","/DhOvermu/",
+                          _,Abort[]];
+   Off[Import::dataset];
+   rawdat=Import[h5name,{"HDF5","Datasets",{WFname<>Yname}}];
+   On[Import::dataset];
+   If[rawdat==$Failed,Return[$Failed]];
+   rawdat=Take[rawdat,range];
+   {Flatten[Take[rawdat,All,{1}]],Function[x,x[[1]]+I x[[2]]]/@Drop[rawdat,0,1]}
+]
+
+
+(* ::Section::Closed:: *)
+(*End of DataRoutines Package*)
+
+
+End[] (* `Private` *)
+
+
+EndPackage[]
