@@ -1,3 +1,5 @@
+(* ::Package:: *)
+
 (* Wolfram Language Init File *)
 
 Get[ "KerrRingdown`DataRoutines`"]

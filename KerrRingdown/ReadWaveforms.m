@@ -4,14 +4,14 @@
 (*ReadWaveforms Package*)
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Begin ReadWaveforms Package*)
 
 
-BeginPackage["ReadWaveforms`"]
+BeginPackage["ReadWaveforms`",{"DataRoutines`"}]
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Documentation of External Functions*)
 
 
@@ -97,11 +97,11 @@ StyleBox[\"\[CapitalSigma]\",\nFontSize->24]\)|\!\(\*SubscriptBox[\(C\), \(lm\)]
 StyleBox[\"lmlist\",\nFontSlant->\"Italic\"]\) has the form {{\!\(\*SubscriptBox[\(l\), \(1\)]\),\!\(\*SubscriptBox[\(m\), \(1\)]\)},{\!\(\*SubscriptBox[\(l\), \(2\)]\),\!\(\*SubscriptBox[\(m\), \(2\)]\)},...}"
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Reserved Globals*)
 
 
-Protect[T0,DataType,SXSRNext,RotateFrame,\[Theta],\[Phi]];
+Protect[T0,DataType,SXS,SXSCCE,SXSRNext,RotateFrame];
 
 
 Begin["`Private`"]
@@ -110,7 +110,7 @@ Begin["`Private`"]
 Protect[KRFtime,KRFC];
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Simulation Data Routines*)
 
 
