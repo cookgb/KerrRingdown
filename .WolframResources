@@ -1,7 +1,0 @@
-Resources[
-    Version[1],
-    ExecutionBuildCommand["<<KerrRingdown`"],
-    Paclet[
-        FunctionPaclet[False]
-    ]
-]
