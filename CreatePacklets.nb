@@ -1,0 +1,170 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 13.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[      6093,        162]
+NotebookOptionsPosition[      4649,        128]
+NotebookOutlinePosition[      5047,        144]
+CellTagsIndexPosition[      5004,        141]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Notebook for creating the Paclets", "Title",
+ CellChangeTimes->{{3.884705134034574*^9, 
+  3.884705201010473*^9}},ExpressionUUID->"284edadb-397f-4328-b810-\
+173f87c1b68d"],
+
+Cell[CellGroupData[{
+
+Cell["Set the directory where the Git repository resides", "Section",
+ CellChangeTimes->{{3.8847050759771237`*^9, 
+  3.884705129037209*^9}},ExpressionUUID->"7145aa49-c13f-43a2-a810-\
+7ddd1a844608"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"PacletDir", "=", "\"\</Users/cookgb/Research/KerrRingdown\>\""}], 
+  ";"}]], "Input",
+ CellChangeTimes->{{3.880727167034521*^9, 3.88072718889056*^9}, {
+   3.880727238232298*^9, 3.880727242524548*^9}, 3.882263496012701*^9, {
+   3.9117268186139936`*^9, 3.911726824220241*^9}, 3.93949167893566*^9, {
+   3.9395612022055407`*^9, 
+   3.939561209656266*^9}},ExpressionUUID->"ec5f28b9-f6ea-479b-8832-\
+ca92d472e8ab"],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+PacletDirectoryLoad makes paclets in the listed directory visible in the \
+current session.\
+\>", "Subsection",
+ CellChangeTimes->{{3.884705369542464*^9, 3.884705419519103*^9}, {
+  3.884705484253303*^9, 3.884705534585898*^9}, {3.8847055762626147`*^9, 
+  3.884705595072994*^9}},ExpressionUUID->"1482ba29-f0d9-4ae7-b720-\
+8f4c00282740"],
+
+Cell["\<\
+Paclets can be used directly from their source directories without being \
+compiled into actual paclets. Once the source directories are in the search \
+path, paclets can be loaded using Needs[\[OpenCurlyDoubleQuote]Pacletname`\
+\[CloseCurlyDoubleQuote]].  However, the documentation is not as easily \
+accessed.\
+\>", "Text",
+ CellChangeTimes->{{3.884705839417227*^9, 3.884705982293852*^9}, 
+   3.884706928208962*^9},ExpressionUUID->"02b91488-4a50-47b9-8ebc-\
+b285bdc98aba"],
+
+Cell[BoxData[
+ RowBox[{"PacletDirectoryLoad", "[", "PacletDir", "]"}]], "Input",
+ CellChangeTimes->{{3.879500728150007*^9, 3.879500737675147*^9}, 
+   3.880726093520657*^9, {3.880727258302607*^9, 3.880727260516588*^9}, {
+   3.880727324937586*^9, 3.88072732707215*^9}, {3.884705237213822*^9, 
+   3.884705237888423*^9}},
+ CellLabel->"In[5]:=",ExpressionUUID->"ba82f3cd-0068-4b8f-a5b0-2e1a18a23d9e"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+We need to load the PacletTools` package if we want to build the paclets\
+\>", "Section",
+ CellChangeTimes->{{3.884705369542464*^9, 
+  3.884705419519103*^9}},ExpressionUUID->"abaef016-443f-4370-a97e-\
+40450f863f1d"],
+
+Cell[BoxData[
+ RowBox[{"Needs", "[", "\"\<PacletTools`\>\"", "]"}]], "Input",
+ CellLabel->"In[6]:=",ExpressionUUID->"45528e2f-4baf-4a2e-8fea-b4fe95b9eaaf"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["PacletBuild created the individual paclets", "Section",
+ CellChangeTimes->{{3.884705369542464*^9, 3.884705419519103*^9}, {
+  3.884705484253303*^9, 3.884705534585898*^9}, {3.8847055762626147`*^9, 
+  3.884705595072994*^9}, {3.884705670110574*^9, 3.884705675173149*^9}, {
+  3.884705743638059*^9, 
+  3.884705765085519*^9}},ExpressionUUID->"366c18e7-3c02-4f57-90d6-\
+b065d118568a"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"result", "[", "1", "]"}], "=", 
+   RowBox[{"PacletBuild", "[", 
+    RowBox[{"PacletDir", "<>", "\"\</KerrRingdown\>\""}], "]"}]}], 
+  ";"}]], "Input",
+ CellChangeTimes->{{3.879501362564122*^9, 3.879501378042837*^9}, 
+   3.879501564345615*^9, {3.879501688591901*^9, 3.879501736852374*^9}, {
+   3.879501824853821*^9, 3.879501828090248*^9}, {3.879501926874854*^9, 
+   3.879501964845593*^9}, 3.880726116895274*^9, 3.880727401960683*^9, 
+   3.884705348053602*^9, 3.884707111859459*^9, {3.911726871258484*^9, 
+   3.911726873732779*^9}},
+ CellLabel->"In[7]:=",ExpressionUUID->"cd6908e0-47c2-42ab-8a5a-c10756c1afd7"],
+
+Cell["\<\
+Once the paclets have been built, they will reside in the \
+\[OpenCurlyDoubleQuote]build\[CloseCurlyDoubleQuote] subdirectory for each \
+paclet directory.  Each paclet contains both the Mathematica code and \
+associated documentation in a single file that can be installed for use.\
+\>", "Text",
+ CellChangeTimes->{{3.884706962094145*^9, 
+  3.88470710177839*^9}},ExpressionUUID->"81f7fd60-63ab-46f3-b653-\
+e9b039f7d7ed"]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{810, 674},
+WindowMargins->{{207, Automatic}, {Automatic, 13}},
+FrontEndVersion->"14.0 for Mac OS X ARM (64-bit) (December 12, 2023)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"b0091f93-eb0d-43c2-b798-b766fb4cfa23"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[580, 22, 176, 3, 98, "Title",ExpressionUUID->"284edadb-397f-4328-b810-173f87c1b68d"],
+Cell[CellGroupData[{
+Cell[781, 29, 197, 3, 67, "Section",ExpressionUUID->"7145aa49-c13f-43a2-a810-7ddd1a844608"],
+Cell[981, 34, 443, 9, 30, "Input",ExpressionUUID->"ec5f28b9-f6ea-479b-8832-ca92d472e8ab"],
+Cell[CellGroupData[{
+Cell[1449, 47, 344, 7, 81, "Subsection",ExpressionUUID->"1482ba29-f0d9-4ae7-b720-8f4c00282740"],
+Cell[1796, 56, 485, 9, 81, "Text",ExpressionUUID->"02b91488-4a50-47b9-8ebc-b285bdc98aba"],
+Cell[2284, 67, 395, 6, 30, "Input",ExpressionUUID->"ba82f3cd-0068-4b8f-a5b0-2e1a18a23d9e"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[2728, 79, 225, 5, 105, "Section",ExpressionUUID->"abaef016-443f-4370-a97e-40450f863f1d"],
+Cell[2956, 86, 155, 2, 30, "Input",ExpressionUUID->"45528e2f-4baf-4a2e-8fea-b4fe95b9eaaf"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[3148, 93, 382, 6, 67, "Section",ExpressionUUID->"366c18e7-3c02-4f57-90d6-b065d118568a"],
+Cell[3533, 101, 655, 13, 30, "Input",ExpressionUUID->"cd6908e0-47c2-42ab-8a5a-c10756c1afd7"],
+Cell[4191, 116, 430, 8, 81, "Text",ExpressionUUID->"81f7fd60-63ab-46f3-b653-e9b039f7d7ed"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
