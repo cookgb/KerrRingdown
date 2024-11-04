@@ -19,7 +19,7 @@ The actual *Mathematica paclet* is found in the KerrRingdown directory of the to
 ---
 ## Build and Installing the Paclet
 
-The file __CreatePaclets.nb__ is included in the top level of the repository.  It can be used to build the paclet from source.  Public releases will also be available containing pre-built versions of the KerrRingdown\` paclet which can be installed directly into your *Mathematica* installation.
+The file __CreatePaclets.nb__ is included in the top level of the repository.  It can be used to build the paclet from source.  Once built, the paclet can be found in the source directory __KerrRindown/build__ with the name __KerrRindown-#.#.#.paclet__. Public releases will also be available containing pre-built versions of the KerrRingdown\` paclet which can be installed directly into your *Mathematica* installation.
 
 Paclet installation is accomplished by using the *Mathematica* function __PacletInstall__.
 
