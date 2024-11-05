@@ -613,6 +613,7 @@ Module[{\[Delta],\[Chi],\[Theta],sm,qnmp,qnmm,fits,tmp,mm,amp,bhp,err,cnt},
 
 
 (*Options[MaximizeOverlap]=Union[Complement[Options[OverlapFit],{ReturnSingularValues->False,FitTimeStride->False,T0->1,TFinal->-2}],Options[FindMaximum]];*)
+Options[MaximizeOverlap]=Union[{},Options[OverlapFit],Options[FindMaximum]];
 MaximizeOverlap[\[Delta]g_?NumberQ,\[Chi]g_?NumberQ,\[Theta]g_?NumberQ,ti_Integer,SimModes_List,QNModesp_List,QNModesm_List,opts:OptionsPattern[]]:=
 Module[{sm,qnmp,qnmm,ret1=Null,ret2=Null},
 	sm = DeleteDuplicates[SimModes];
@@ -692,7 +693,7 @@ Module[{sm,qnmp,qnmm,ret1=Null,ret2=Null},
 ]
 
 
-Options[RemnantParameterSpaceMaxOverlap]=Union[{FitAngle->False},Complement[Options[OverlapFit],{ReturnSingularValues->False}](*,Options[FindMaximum]*)];
+Options[RemnantParameterSpaceMaxOverlap]=Union[{FitAngle->False},Options[OverlapFit],Options[FindMaximum]];
 RemnantParameterSpaceMaxOverlap[rps_List,opts:OptionsPattern[]]:=
 Module[{Nt,params,i,pos,minparam,fit\[Theta]=OptionValue[FitAngle],maxo,ret={},tRps=rps[[1]],tIndList,
 	fittimeT0=OptionValue[T0],fittimeTFinal=OptionValue[TFinal],t,tLength,TimeStride=OptionValue[FitTimeStride],
@@ -778,13 +779,15 @@ Module[{Nt,i,fit\[Theta]=OptionValue[FitAngle],ig=OptionValue[InitialGuess],
 ]
 
 
+Options[MaxOverlapSequenceAmplitudes]=Union[{},Options[OverlapFit]];
 MaxOverlapSequenceAmplitudes[mos_List,SimModes_List,QNModesp_List,QNModesm_List,opts:OptionsPattern[]]:=
 Module[{fittime,massratio,a,\[Theta],ind,ind2,fit,amp,err2,count,
 		i,l,m,mode,qnmp,qnmm,j,lp,mp,np,nplus,cerr,t={},amps={},err2s={}},
 	For[ind=1,ind<=Length[mos],++ind,
 		fittime=mos[[ind,1]];
 		ind2=If[fittime>=KRFtime[[-1]],Length[KRFtime],If[fittime<=KRFtime[[1]],1,SequencePosition[KRFtime,{x_/;x>=fittime},1][[1,1]]]];
-		{massratio,a,\[Theta]}=mos[[ind,{3,4,5}]];		fit=OverlapFit[massratio,a,\[Theta],0,DeleteDuplicates[SimModes],
+		{massratio,a,\[Theta]}=mos[[ind,{3,4,5}]];		
+		fit=OverlapFit[massratio,a,\[Theta],0,DeleteDuplicates[SimModes],
 			DeleteDuplicates[QNModesp],DeleteDuplicates[QNModesm],
 			T0->ind2,TFinal->ind2,
 			ReturnSingularValues->False,Evaluate@FilterRules[{opts},Options@OverlapFit]];
