@@ -297,7 +297,7 @@ Module[{s=-2,Avec={},Belem={},Bpos={},massratio,a,\[Theta],\[Phi],t,ts,nplus,nmi
 Options[KRFDesignMatrix]={TEnd->-1,TFinal->-2,T0->1,FitTimeStride->False};
 KRFDesignMatrix[BHproperties_List,SimModes_List,QNModesp_List,QNModesm_List,OptionsPattern[]]:=
 Module[{dm,massratio,a,\[Theta],\[Phi],t,ts,i,nplus,nminus,l,m,n,
-        ind0=OptionValue[T0],indend=OptionValue[TEnd],indf2=OptionValue[TFinal],indf,TimeStride=OptionValue[FitTimeStride],TimePos={},IndTime={}},
+        ind0=OptionValue[T0],indend=OptionValue[TEnd],indf2=OptionValue[TFinal],indf,TimeStride=OptionValue[FitTimeStride],TimePos={},IndTime={},\[Omega]Info={}},
 	{massratio,a,\[Theta],\[Phi]}=BHproperties;
 	t=Take[KRFtime,{ind0,indend}];
 	If[$MinPrecision>0,t=SetPrecision[t,$MinPrecision];{massratio,a,\[Theta],\[Phi]}=SetPrecision[{massratio,a,\[Theta],\[Phi]},$MinPrecision]];
@@ -316,6 +316,7 @@ Module[{dm,massratio,a,\[Theta],\[Phi],t,ts,i,nplus,nminus,l,m,n,
 			(* Use this version of dm to ignore the Spheroidal Harmonic expansion coefficients *)
 			Flatten[Transpose[(Exp[-I KRF\[Omega][l,m,n]ts]KroneckerDelta[l,#[[1]]])&/@SimModes]]
 		];
+		AppendTo[\[Omega]Info,KRF\[Omega][l,m,n]]
 	];
 	For[i=1,i<=nminus,++i,
 		{l,m,n}=QNModesm[[i]];
@@ -324,11 +325,12 @@ Module[{dm,massratio,a,\[Theta],\[Phi],t,ts,i,nplus,nminus,l,m,n,
 			(* Use this version of dm to ignore the Spheroidal Harmonic expansion coefficients *)
 			Flatten[Transpose[(Exp[I Conjugate[KRF\[Omega][l,-m,n]]ts]KroneckerDelta[l,#[[1]]])&/@SimModes]]
 		];
+		AppendTo[\[Omega]Info,-Conjugate[KRF\[Omega][l,-m,n]]]
 	];
 	If[Head[TimeStride]==List,
 	TimePos=Flatten[(Nearest[Take[t,indf],#,1])&/@TimeStride];
 	IndTime=Flatten[Position[Take[t,indf],#]&/@TimePos,2]];
-	{indf,Length[SimModes],Table[dm[i],{i,1,nplus+nminus}],Flatten[Transpose[Take[KRFC @@ #,{ind0,indend}]&/@SimModes]],IndTime}
+	{indf,Length[SimModes],Table[dm[i],{i,1,nplus+nminus}],Flatten[Transpose[Take[KRFC @@ #,{ind0,indend}]&/@SimModes]],IndTime,\[Omega]Info}
 ]
 
 
@@ -346,8 +348,11 @@ Options[OverlapFit]=Union[{SVDWorkingPrecision->MachinePrecision,Tolerance->0,Us
 OverlapFit[massratio_?NumberQ,a_?NumberQ,\[Theta]_?NumberQ,\[Phi]_?NumberQ,SimModes_List,QNModesp_List,QNModesm_List,opts:OptionsPattern[]]:=
 Module[{prec=OptionValue[SVDWorkingPrecision],tol=OptionValue[Tolerance],returnsv=OptionValue[ReturnSingularValues],
 	Avec,Bmat,PsiPsi,t,Dmat,Qvec,count,svd,w,v,u,winv,amp,qnmp\[Delta],qnmm\[Delta],qnmp,qnmm,QNMamp,err2s,\[Rho],
-	indf,nsims,dm,b,i,acol,w2,appends,nk,j,conji,dots,Rvec={},NMelem={},NMpos={},ind0,indend,ts,
+	indf,ind0=OptionValue[T0],indf2=OptionValue[TFinal],tr,ts,\[Omega]Info,dmCurr,
+	nsims,dm,b,i,acol,w2,appends,nk,j,conji,dots,Rvec={},NMelem={},NMpos={},
 	ResModes=OptionValue[RescaleModes],lp,mp,np,lm,mm,nm,rescalelist,TimeStride=OptionValue[FitTimeStride],IndTime,IndTimeDif,IndCount},
+	If[indf2<0,indf2=Length[KRFtime]+indf2+1]; 
+	tr=Take[KRFtime,{ind0,indf2}]/massratio;(*This tr is used for rescaling in least-square*)
 	(* Set QNM mode lists.  First Sort them. *)
 	qnmp=SortBy[QNModesp,{Abs[#[[2]]]&,-#[[2]]&,#[[1]]&,#[[3]]&}];
 	qnmm=SortBy[QNModesm,{Abs[#[[2]]]&,-#[[2]]&,#[[1]]&,#[[3]]&}];
@@ -359,8 +364,6 @@ Module[{prec=OptionValue[SVDWorkingPrecision],tol=OptionValue[Tolerance],returns
 	Switch[OptionValue[UseLeastSquares],
 	(* Eigenvalue method *)
 		False,
-		ind0=OptionValue[T0];
-		indend=OptionValue[TFinal];
 		svd=SingularValueDecomposition[#,Tolerance->tol]& /@ Bmat;
 		w=Flatten[Take[svd,All,{2}],1];v=Flatten[Take[svd,All,{3}],1];Clear[svd];
 		winv=Map[If[#==0,0,1/#]&,(Diagonal[#]& /@ w),{2}];
@@ -368,50 +371,68 @@ Module[{prec=OptionValue[SVDWorkingPrecision],tol=OptionValue[Tolerance],returns
 		err2s=(Abs[#[[1]]]^2) . #[[2]]&/@Transpose[{v,winv}];
 		\[Rho]=Sqrt[(Abs[Conjugate[#[[1]]] . (#[[3]])]^2/Abs[Conjugate[#[[3]]] . #[[2]] . (#[[3]])]&/@Transpose[{Avec,Bmat,amp}])/PsiPsi];
 		If[ResModes,amp*=Transpose[rescalelist];err2s*=Transpose[rescalelist^2]],
-	(* Least Squares - DesignMatix method *)
+	(* Least Squares - DesignMatrix method *)
 		DesignMatrix,
-		{indf,nsims,dm,b,IndTime}=KRFDesignMatrix[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],FitTimeStride->OptionValue[FitTimeStride]];
-		dm=Transpose[dm];
+		{indf,nsims,dm,b,IndTime,\[Omega]Info}=KRFDesignMatrix[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],FitTimeStride->OptionValue[FitTimeStride]];
+		rescalelist={};
+		(*Note that the structure of the rescalelist in DesignMatrix is the transposed rescalelist of other method, e.g., Eigenvalue method and NormalEquation*)
 		Switch[
 		Head[TimeStride],
 		Symbol,
 		appends=Last@Reap[For[i=1,i<=indf,++i,
-			{u,w,v}=SingularValueDecomposition[SetPrecision[dm,prec],Tolerance->Sqrt[tol]];
+			dmCurr=dm;
+			If[ResModes,
+				AppendTo[rescalelist,Flatten[Exp[-Im[\[Omega]Info]*tr[[i]]]]]; 
+				dmCurr*=rescalelist[[-1]];
+			];
+			{u,w,v}=SingularValueDecomposition[SetPrecision[Transpose[dmCurr],prec],Tolerance->Sqrt[tol]];
 			winv=Map[If[#==0,0,1/#]&,(Diagonal[w])];
 			acol=v . ((b . Conjugate[Take[u,All,Length[winv]]])winv);
 			Sow[acol,amp];
 			Sow[((Abs[v]^2) . (winv^2)),err2s];
 			Sow[Sqrt[((Abs[Conjugate[acol] . Avec[[i]]]^2/Abs[Conjugate[acol] . (Bmat[[i]] . acol)]))/PsiPsi[[i]]],\[Rho]];
 			If[returnsv,Sow[w^2,w2]];
-			dm=Drop[dm,nsims]; b=Drop[b,nsims] (* remove data from latest time *)
+			dm=Drop[dm,None,nsims]; b=Drop[b,nsims] (* remove data from latest time *)
 		]];
 		amp:=appends[[1]];
 		err2s:=appends[[2]];
 		\[Rho]:=appends[[3]];
+		If[ResModes,amp*=rescalelist;err2s*=rescalelist^2];
 		If[returnsv,w:=appends[[4]]],
 		Integer(* choose to fit with specific integer time stride *),
 		IndCount=1;
 		appends=Last@Reap[For[i=1,i<=indf,i+=TimeStride,
-			{u,w,v}=SingularValueDecomposition[SetPrecision[dm,prec],Tolerance->Sqrt[tol]];
+			dmCurr=dm;
+			If[ResModes,
+				AppendTo[rescalelist,Flatten[Exp[-Im[\[Omega]Info]*tr[[i]]]]]; 
+				dmCurr*=rescalelist[[-1]];
+			];
+			{u,w,v}=SingularValueDecomposition[SetPrecision[Transpose[dmCurr],prec],Tolerance->Sqrt[tol]];
 			winv=Map[If[#==0,0,1/#]&,(Diagonal[w])];
 			acol=v . ((b . Conjugate[Take[u,All,Length[winv]]])winv);
 			Sow[acol,amp];
 			Sow[((Abs[v]^2) . (winv^2)),err2s];
 			Sow[Sqrt[((Abs[Conjugate[acol] . Avec[[IndCount]]]^2/Abs[Conjugate[acol] . (Bmat[[IndCount]] . acol)]))/PsiPsi[[IndCount]]],\[Rho]];
 			If[returnsv,Sow[w^2,w2]];
-			dm=Drop[dm,nsims*TimeStride]; b=Drop[b,nsims*TimeStride];(* remove data from latest time *)
+			dm=Drop[dm,None,nsims*TimeStride]; b=Drop[b,nsims*TimeStride];(* remove data from latest time *)
 			++IndCount 
 		]];
 		amp:=appends[[1]];
 		err2s:=appends[[2]];
 		\[Rho]:=appends[[3]];
+		If[ResModes,amp*=rescalelist;err2s*=rescalelist^2];
 		If[returnsv,w:=appends[[4]]],
 		List(* choose to fit with a time list *),
-		dm=Drop[dm,nsims*(IndTime[[1]]-1)]; b=Drop[b,nsims*(IndTime[[1]]-1)];
+		dm=Drop[dm,None,nsims*(IndTime[[1]]-1)]; b=Drop[b,nsims*(IndTime[[1]]-1)];
 		IndTimeDif=Differences[IndTime];
 		IndCount=1;
 		appends=Last@Reap[Do[
-			{u,w,v}=SingularValueDecomposition[SetPrecision[dm,prec],Tolerance->Sqrt[tol]];
+			dmCurr=dm;
+			If[ResModes,
+				AppendTo[rescalelist,Flatten[Exp[-Im[\[Omega]Info]*tr[[i]]]]]; 
+				dmCurr*=rescalelist[[-1]];
+			];
+			{u,w,v}=SingularValueDecomposition[SetPrecision[Transpose[dmCurr],prec],Tolerance->Sqrt[tol]];
 			winv=Map[If[#==0,0,1/#]&,(Diagonal[w])];
 			acol=v . ((b . Conjugate[Take[u,All,Length[winv]]])winv);
 			Sow[acol,amp];
@@ -419,21 +440,24 @@ Module[{prec=OptionValue[SVDWorkingPrecision],tol=OptionValue[Tolerance],returns
 			Sow[Sqrt[((Abs[Conjugate[acol] . Avec[[IndCount]]]^2/Abs[Conjugate[acol] . (Bmat[[IndCount]] . acol)]))/PsiPsi[[IndCount]]],\[Rho]];
 			If[returnsv,Sow[w^2,w2]];
 			If[IndCount<=Length[IndTimeDif],
-			dm=Drop[dm,nsims*IndTimeDif[[IndCount]]]; b=Drop[b,nsims*IndTimeDif[[IndCount]]]]; (* remove data from latest time *)
+			dm=Drop[dm,None,nsims*IndTimeDif[[IndCount]]]; b=Drop[b,nsims*IndTimeDif[[IndCount]]]]; (* remove data from latest time *)
 			++IndCount
 		,{i,IndTime}]];
 		amp:=appends[[1]];
 		err2s:=appends[[2]];
 		\[Rho]:=appends[[3]];
+		If[ResModes,amp*=rescalelist;err2s*=rescalelist^2];
 		If[returnsv,w:=appends[[4]]]		
 		],
 	(* Least Squares - NormalEquation method *)
 		NormalEquation,
-		{indf,nsims,dm,b,IndTime}=KRFDesignMatrix[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],FitTimeStride->OptionValue[FitTimeStride]];
+		{indf,nsims,dm,b,IndTime,\[Omega]Info}=KRFDesignMatrix[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],FitTimeStride->OptionValue[FitTimeStride]];
+		rescalelist={};
 		nk=Dimensions[dm][[1]];
 		For[i=1,i<=nk,++i,
 			conji=Conjugate[dm[[i]]];
 			dots=Reverse[Take[Accumulate[Reverse[conji b],Method->"CompensatedSummation"],{-(indf-1)*nsims-1,-1,nsims}]];
+			If[ResModes,AppendTo[rescalelist,Exp[-Im[\[Omega]Info[[i]]]*tr]]; dots*=rescalelist[[-1]]];
 			Switch[Head[TimeStride],
 			Symbol,
 			Null,
@@ -445,6 +469,7 @@ Module[{prec=OptionValue[SVDWorkingPrecision],tol=OptionValue[Tolerance],returns
 			AppendTo[Rvec,dots];
 			For[j=i,j<=nk,++j,
 				dots=Reverse[Take[Accumulate[Reverse[conji dm[[j]]],Method->"CompensatedSummation"],{-(indf-1)*nsims-1,-1,nsims}]];
+				If[ResModes, dots *=  Exp[-Im[\[Omega]Info[[i]]+\[Omega]Info[[j]]]*tr]];
 				Switch[Head[TimeStride],
 				Symbol,
 				Null,
@@ -458,12 +483,23 @@ Module[{prec=OptionValue[SVDWorkingPrecision],tol=OptionValue[Tolerance],returns
 				AppendTo[NMelem,dots];AppendTo[NMpos,{i,j}];AppendTo[NMelem,Conjugate[dots]];AppendTo[NMpos,{j,i}]]
 			];
 		];
+		(*If we apply rescaling, select the rescale list basing on the FitTimeStride Options *)
+		If[ResModes,
+		Switch[Head[TimeStride],
+			Symbol,
+			Null,
+			Integer,
+			rescalelist=Transpose[(Transpose[rescalelist])[[#]]&/@Range[1,indf,TimeStride]],
+			List,
+			rescalelist=Transpose[(Transpose[rescalelist])[[#]]&/@IndTime]
+		];];
 		svd=SingularValueDecomposition[#,Tolerance->tol]& /@ SetPrecision[Normal[SparseArray[NMpos->Flatten[#]]]&/@Transpose[NMelem],prec];
 		w=Flatten[Take[svd,All,{2}],1];v=Flatten[Take[svd,All,{3}],1];Clear[svd];
 		winv=Map[If[#==0,0,1/#]&,(Diagonal[#]& /@ w),{2}];
 		amp=#[[1]] . DiagonalMatrix[#[[2]]] . ConjugateTranspose[#[[1]]] . #[[3]]&/@Transpose[{v,winv,Transpose[Rvec]}];
 		err2s=(Abs[#[[1]]]^2) . #[[2]]&/@Transpose[{v,winv}];
 		\[Rho]=Sqrt[(Abs[Conjugate[#[[3]]] . #[[1]]]^2/Abs[Conjugate[#[[3]]] . #[[2]] . #[[3]]]&/@Transpose[{Avec,Bmat,amp}])/PsiPsi];
+		If[ResModes,amp*=Transpose[rescalelist];err2s*=Transpose[rescalelist^2]]
 	];
 	If[Not[returnsv],
 		{t,\[Rho],SetPrecision[amp,MachinePrecision],{{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm},SetPrecision[err2s,MachinePrecision],count},
