@@ -48,7 +48,8 @@ SXSFinalProperties::usage=
 Protect[T0,TEnd,TFinal,Width,DataType,SXS,SXSCCE,SXSRNext,WaveformType,Psi4,Metric,News,
 		FrameType,Extrapolated,Superrest,CoM,Mem,\[Delta]f,\[Chi]f,\[Theta]f,FitAngle,SVDWorkingPrecision,InitialGuess,
 		CheckUpdate,Errors,UseLeastSquares,NormalEquation,ReturnSingularValues,
-		Log10MisMatchRange,OmitModes,RestrictToSimulationSubspace,RotateFrame,FitTimeStride,RescaleModes];
+		Log10MisMatchRange,OmitModes,RestrictToSimulationSubspace,RotateFrame,FitTimeStride,RescaleModes,
+		NLmodesList,FixedModesGreedy,FullMismatch];
 
 
 Begin["`Private`"]

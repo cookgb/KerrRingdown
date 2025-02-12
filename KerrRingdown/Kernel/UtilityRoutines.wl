@@ -60,12 +60,20 @@ SphericalHarmonicModes::usage=
 "with the QNM specified by {l,m,n}"
 
 
+SphericalHarmonicModesNL::Abort="Invalid Quadratic Modes: `1`";
+SphericalHarmonicModesNL::usage=""
+
+
 SpheroidalHarmonicModes::Abort="Invalid simulation mode : `1`";
 SpheroidalHarmonicModes::usage=
 "SpheroidalHarmonicModes[{l,m},qnms] "<>
 "Select the subset of QNMs in the list "<>
 "\!\(\*StyleBox[\"qnms\", \"TI\"]\) that can overlap "<>
 "with the signal mode specified by {l,m}."
+
+
+SpheroidalHarmonicModesNL::Abort="Invalid simulation mode : `1`";
+SpheroidalHarmonicModesNL::usage=""
 
 
 FitMode::usage=
@@ -139,6 +147,11 @@ OverlapSequenceCoefMinus::usage=
 "\!\(\*SubsuperscriptBox[\(C\), \(lmn\), \(-\)]\)(t) from an OverlapFit result fit"
 
 
+OverlapSequenceCoefNL::Abort="Quadratic mode input does not exist in OverlapFit result \!\(\*
+StyleBox[\"fit\",\nFontSlant->\"Italic\"]\). "
+OverlapSequenceCoefMinus::usage=""
+
+
 MOSAmp::usage=
 "MOSAmp[ampdata,index] "<>
 "returns a list appropriate for plotting QNM amplitudes as a "<>
@@ -170,6 +183,15 @@ MergeMaxOverlapSequences::usage=
 "\!\(\*SubscriptBox[\(mos\), \(i\)]\) as returned by RemnantParameterSpaceMaxOverlap.  "<>
 "The returned list is sorted in time and duplicate time "<>
 "entries are removed."
+
+
+FindNonlinearIndex::usage=""
+
+
+SetGreedyModes::usage=""
+
+
+FitInfoStruct::usage=""
 
 
 (* ::Subsection::Closed:: *)
@@ -244,11 +266,26 @@ Module[{p},
 ]
 
 
+FindNonlinearIndex[QNModesp_List,QNModesm_List,NLlist_List,NLfind_List]:=Module[{p},
+p=Position[NLlist,NLfind];
+If[Length[p]==0,0,Length[QNModesp]+Length[QNModesm]+p[[1,1]]]]
+
+
 SphericalHarmonicModes[qnm_List,sim_List]:=
 Module[{s=-2},
    If[Length[qnm]!=3||qnm[[1]]<Abs[s]||Abs[qnm[[2]]]>qnm[[1]]||qnm[[3]]<0,
       Message[SphericalHarmonicModes::Abort,qnm];Abort[]];
    DeleteDuplicates[Cases[sim,x_/;x[[1]]>=Max[Abs[s],Abs[qnm[[2]]]]->x]]
+]
+
+
+(*This function works the same as the SphericalHarmonicModes but for quadratic modes. *)
+(*qqnm is a list in form of {l,m,\[Omega]}*)
+SphericalHarmonicModesNL[qqnm_List,sim_List]:=
+Module[{s=-2},
+   If[Length[qqnm]!=3,
+      Message[SphericalHarmonicModesNL::Abort,qqnm];Abort[]];
+   DeleteDuplicates[Cases[sim,x_/;x[[1]]>=Max[Abs[s],Abs[qqnm[[2]]]]->x]]
 ]
 
 
@@ -260,27 +297,138 @@ Module[{s=-2},
 ]
 
 
-Options[FitMode]={OmitModes->{{},{}}};
-FitMode[fitinfo_List,lm_List,fittime_?NumberQ,OptionsPattern[]]:=
-Module[{t,\[Rho],amp,massratio,a,\[Theta],\[Phi],SimModes,QNModesp,QNModesm,qnmp,qnmm,l,m,lp,mp,np,ind,
-        i,mode=Table[0,Length[KRFtime]],nplus,QNMamp,err2s,count,omitp,omitm},
-	{omitp,omitm}=OptionValue[OmitModes];
-	{t,\[Rho],amp,{{massratio,a,\[Theta],\[Phi]},SimModes,QNModesp,QNModesm},err2s,count}=fitinfo;
+(*This function works the same as the SpheroidalHarmonicModes but for quadratic modes. *)
+(*qqnm is a list in form of {l,m,\[Omega]}*)
+SpheroidalHarmonicModesNL[sim_List,qqnm_List]:=
+Module[{s=-2},
+	If[Length[sim]!=2||sim[[1]]<Abs[s]||Abs[sim[[2]]]>sim[[1]],
+      Message[SpheroidalHarmonicModesNL::Abort,sim];Abort[]];
+    DeleteDuplicates[Cases[Cases[qqnm,x_/;x[[1]]>=Max[Abs[s],Abs[sim[[2]]]]->x],x_/;Abs[x[[2]]]<=sim[[1]]->x]] 
+]
+
+
+Options[FitMode]= Union[Options[SetModeData],{OmitModes->{{},{},{}}}]
+FitMode[fit_List,lm_List,fittime_?NumberQ,opts:OptionsPattern[]]:=
+Module[{t,\[Rho],amp,massratio,a,\[Theta],\[Phi],SimModes,QNModesp,QNModesm,err2,count,qnmp,qnmm,l,m,lp,mp,np,ind,
+        j,mode=Table[0,Length[KRFtime]],omitp,omitm,
+        NLmodesExist,omitNL,
+        fixedGreedyIndex={},FixedModesG={},QQNModes,
+		qnmpSet,qnmmSet,QNModespUnfixed,QNModesmUnfixed,massratioFixed,QNModespFixed,
+		QNModesmFixed,QQNModesFixed={},QQNModesUnfixed,QQNModes\[Omega]Unfixed,QQNModes\[Omega]Fixed,
+		\[Omega]NL,k,fixedAmp,qqnm,qqnmIndex},
+	{omitp,omitm,omitNL}=OptionValue[OmitModes];
 	{l,m}=lm;
+	(* obtain the information of QNMp, QNMm, Quadratic QNM, and fixed modes. 
+	Added for making this function compatible with qudratic QNMs and greedy algorithm.
+	*) 	
+	{{qnmpSet,qnmmSet,fixedGreedyIndex,FixedModesG},{QNModesp,QNModesm,QQNModes},{t,\[Rho],amp,{{massratio,a,\[Theta],\[Phi]},SimModes,QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed},err2,count}} = FitInfoStruct[fit];
+	If[QQNModes=={},NLmodesExist=False,NLmodesExist=True,NLmodesExist=True];	
+	SetModeData[a,qnmpSet,qnmmSet,Evaluate@FilterRules[{opts},Options@SetModeData]];
+	If[Length[FixedModesG]!=0,
+		massratioFixed = fixedGreedyIndex[[-1]];
+		QNModespFixed=QNModesp[[#]]&/@fixedGreedyIndex[[1]];
+		QNModesmFixed=QNModesm[[#]]&/@fixedGreedyIndex[[2]];
+		QQNModesFixed=QQNModes[[#]]&/@fixedGreedyIndex[[3]];
+	];
+	If[NLmodesExist,(*calculate the frequency of the quadratic QNMs*)
+		QQNModes\[Omega]Unfixed=DeleteDuplicates[{#[[1,1]]+#[[2,1]],#[[1,2]]+#[[2,2]],
+				If[#[[1,4]]==1,
+					If[#[[2,4]]==1,
+						KRF\[Omega][#[[1,1]],#[[1,2]],#[[1,3]]]+KRF\[Omega][#[[2,1]],#[[2,2]],#[[2,3]]],
+						KRF\[Omega][#[[1,1]],#[[1,2]],#[[1,3]]]-Conjugate[KRF\[Omega][#[[2,1]],-#[[2,2]],#[[2,3]]]]
+					],
+					If[#[[2,4]]==1,
+						-Conjugate[KRF\[Omega][#[[1,1]],-#[[1,2]],#[[1,3]]]]+KRF\[Omega][#[[2,1]],#[[2,2]],#[[2,3]]],
+						-Conjugate[KRF\[Omega][#[[1,1]],-#[[1,2]],#[[1,3]]]+KRF\[Omega][#[[2,1]],-#[[2,2]],#[[2,3]]]]
+					]
+					]}&/@QQNModesUnfixed];
+		QQNModes\[Omega]Fixed=DeleteDuplicates[{#[[1,1]]+#[[2,1]],#[[1,2]]+#[[2,2]],
+				If[#[[1,4]]==1,
+					If[#[[2,4]]==1,
+						KRF\[Omega][#[[1,1]],#[[1,2]],#[[1,3]]]+KRF\[Omega][#[[2,1]],#[[2,2]],#[[2,3]]],
+						KRF\[Omega][#[[1,1]],#[[1,2]],#[[1,3]]]-Conjugate[KRF\[Omega][#[[2,1]],-#[[2,2]],#[[2,3]]]]
+					],
+					If[#[[2,4]]==1,
+						-Conjugate[KRF\[Omega][#[[1,1]],-#[[1,2]],#[[1,3]]]]+KRF\[Omega][#[[2,1]],#[[2,2]],#[[2,3]]],
+						-Conjugate[KRF\[Omega][#[[1,1]],-#[[1,2]],#[[1,3]]]+KRF\[Omega][#[[2,1]],-#[[2,2]],#[[2,3]]]]
+					]
+					]}&/@QQNModesFixed];
+	];
+	
 	ind=If[fittime>=t[[-1]],Length[t],If[fittime<=t[[1]],1,SequencePosition[t,{x_/;x>=fittime},1][[1,1]]]];
-	Do[{lp,mp,np}=lmn;
-		If[MemberQ[omitp,lmn],Continue[]];
+	
+	(*contribution to waveform from unfixed QNM plus*)
+	qnmp=SpheroidalHarmonicModes[{l,m},QNModespUnfixed];
+	For[j=1,j<=Length[qnmp],++j,
+		If[MemberQ[omitp,qnmp[[j]]],Continue[]];
+		{lp,mp,np}=qnmp[[j]];
 		mode+=If[UseSpheroidalExpansion,
-			WignerD[{l,-m,-mp},\[Phi],\[Theta],0]amp[[ind,Position[QNModesp,lmn][[1,1]]]]KRFYS[l,lp,mp,np]Exp[-I KRF\[Omega][lp,mp,np] KRFtime/massratio],
-			(* Use this version of mode+= to ignore the Spheroidal Harmonic expansion coefficients *)
-			KroneckerDelta[l,lp]amp[[ind,Position[QNModesp,lmn][[1,1]]]]Exp[-I KRF\[Omega][lp,mp,np] KRFtime/massratio]],{lmn,SpheroidalHarmonicModes[lm,QNModesp]}];
-	nplus=Length[QNModesp];
-	Do[{lp,mp,np}=lmn;
-		If[MemberQ[omitm,lmn],Continue[]];
+				WignerD[{l,-m,-mp},\[Phi],\[Theta],0]amp[[ind,QNMpIndex[QNModespUnfixed,QNModesmUnfixed,qnmp[[j]]]]]KRFYS[l,lp,mp,np]Exp[-I KRF\[Omega][lp,mp,np] KRFtime/massratio],
+				(* Use this version of mode+= to ignore the Spheroidal Harmonic expansion coefficients *)
+				KroneckerDelta[l,lp]amp[[ind,QNMpIndex[QNModespUnfixed,QNModesmUnfixed,qnmp[[j]]]]]Exp[-I KRF\[Omega][lp,mp,np] KRFtime/massratio]
+		];
+	];
+	(*contribution to waveform from unfixed QNM minus*)
+	qnmm=SpheroidalHarmonicModes[{l,m},QNModesmUnfixed];
+	For[j=1,j<=Length[qnmm],++j,
+		If[MemberQ[omitm,qnmm[[j]]],Continue[]];
+		{lp,mp,np}=qnmm[[j]];
 		mode+=If[UseSpheroidalExpansion,
-			(-1)^(l+lp)WignerD[{l,-m,-mp},\[Phi],\[Theta],0]amp[[ind,nplus+Position[QNModesm,lmn][[1,1]]]]Conjugate[KRFYS[l,lp,-mp,np]]Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] KRFtime/massratio],
+			(-1)^(l+lp)WignerD[{l,-m,-mp},\[Phi],\[Theta],0]amp[[ind,QNMmIndex[QNModespUnfixed,QNModesmUnfixed,qnmm[[j]]]]]Conjugate[KRFYS[l,lp,-mp,np]]Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] KRFtime/massratio],
 			(* Use this version of mode+= to ignore the Spheroidal Harmonic expansion coefficients *)
-			KroneckerDelta[l,lp]amp[[ind,nplus+Position[QNModesm,lmn][[1,1]]]]Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] KRFtime/massratio]],{lmn,SpheroidalHarmonicModes[lm,QNModesm]}];
+			KroneckerDelta[l,lp]amp[[ind,QNMmIndex[QNModespUnfixed,QNModesmUnfixed,qnmm[[j]]]]]Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] KRFtime/massratio]
+		];
+	];
+	If[NLmodesExist, (*if there are quadratic QNMs*)
+		qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Unfixed];
+		qqnmIndex=Flatten[Position[QQNModes\[Omega]Unfixed,#]&/@qqnm];
+		For[j=1,j<=Length[qqnm],j++,
+			If[MemberQ[omitNL,QQNModesUnfixed[[qqnmIndex[[j]]]]],Continue[]];
+			{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)
+			mode+=WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[ind,FindNonlinearIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* KRFtime/massratio]	
+		];
+	];
+	If[Length[FixedModesG]!=0,(*if there are fixed QNMs in the fit results*)
+			(*contribution to waveform from fixed QNM plus and minus*)
+			qnmp=SpheroidalHarmonicModes[{l,m},QNModespFixed];
+			For[j=1,j<=Length[qnmp],++j,
+				If[MemberQ[omitp,qnmp[[j]]],Continue[]];
+				{lp,mp,np}=qnmp[[j]];
+				For[k=1,k<=Length[FixedModesG],k++,
+					If[FixedModesG[[k,1]]=={lp,mp,np,1},fixedAmp=FixedModesG[[k,2]];Break[]]
+				];
+				mode+=If[UseSpheroidalExpansion,
+					WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*fixedAmp*KRFYS[l,lp,mp,np]Exp[-I KRF\[Omega][lp,mp,np] KRFtime/massratioFixed],
+					(* Use this version of mode+= to ignore the Spheroidal Harmonic expansion coefficients *)
+					KroneckerDelta[l,lp]*fixedAmp*Exp[-I KRF\[Omega][lp,mp,np] KRFtime/massratioFixed]
+				];
+			];
+			qnmm=SpheroidalHarmonicModes[{l,m},QNModesmFixed];
+			For[j=1,j<=Length[qnmm],++j,
+				If[MemberQ[omitm,qnmm[[j]]],Continue[]];
+				{lp,mp,np}=qnmm[[j]];
+				For[k=1,k<=Length[FixedModesG],k++,
+					If[FixedModesG[[k,1]]=={lp,mp,np,-1},fixedAmp=FixedModesG[[k,2]];Break[]]
+				];
+				mode+=If[UseSpheroidalExpansion,
+						(-1)^(l+lp)WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*fixedAmp*Conjugate[KRFYS[l,lp,-mp,np]]Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] KRFtime/massratioFixed],
+						(* Use this version of mode+= to ignore the Spheroidal Harmonic expansion coefficients *)
+						KroneckerDelta[l,lp]*fixedAmp*Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] KRFtime/massratioFixed]
+					];
+			];
+			If[NLmodesExist&&QQNModes\[Omega]Fixed!={}, (*if there are quadratic QNMs*)
+				qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Fixed];
+				qqnmIndex=Flatten[Position[QQNModes\[Omega]Fixed,#]&/@qqnm];
+				For[j=1,j<=Length[qqnm],j++,
+					If[MemberQ[omitNL,QQNModesFixed[[qqnmIndex[[j]]]]],Continue[]];
+					{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)
+					For[k=1,k<=Length[FixedModesG],k++,
+						If[FixedModesG[[k,1]]==QQNModesFixed[[qqnmIndex[[j]]]],fixedAmp=FixedModesG[[k,2]];Break[]]
+					];
+					mode+=WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*fixedAmp*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* KRFtime/massratioFixed]	
+				];
+			];
+	];
 	{KRFtime,mode}
 ]
 
@@ -311,8 +459,15 @@ QNMData[qnm_List,lp_]:={KRF\[Omega][qnm[[1]],qnm[[2]],qnm[[3]]],KRFYS[lp,qnm[[1]
 Options[ViewRemnantParameterSpace\[Delta]\[Chi]]={Log10MisMatchRange->Automatic};
 ViewRemnantParameterSpace\[Delta]\[Chi][rps_,ti_,\[Theta]i_,OptionsPattern[]]:=
 Module[{time,mismatch,amp,BHparams,SimModes,QNModesp,QNModesm,err,count,data,min,
-		range=OptionValue[Log10MisMatchRange],colorfunc,rng},
-	{time,mismatch,amp,{BHparams,SimModes,QNModesp,QNModesm},err,count}=rps;
+		range=OptionValue[Log10MisMatchRange],colorfunc,rng,NLTemp,GreedyTemp},
+	Switch[Length[rps[[4]]],
+		4,
+		{time,mismatch,amp,{BHparams,SimModes,QNModesp,QNModesm},err,count}=rps,
+		5,
+		{time,mismatch,amp,{BHparams,SimModes,QNModesp,QNModesm,NLTemp},err,count}=rps,
+		6,
+		{time,mismatch,amp,{BHparams,SimModes,QNModesp,QNModesm,NLTemp,GreedyTemp},err,count}=rps
+	];	
 	(*data = Transpose[{Flatten[Take[BHparams,All,All,{\[Theta]i},1,{2}]],
 						Flatten[Take[BHparams,All,All,{\[Theta]i},1,{1}]],
 						Log10[Flatten[Take[mismatch,{ti},All,All,{\[Theta]i}]]]}];*)
@@ -380,13 +535,52 @@ Add\[Delta]\[Chi]LinesandLabel[lp_,label_]:=ReplacePart[lp,{1,1,1}->Show[lp[[1,1
 				Graphics[label]]]
 
 
-Options[OverlapSequenceAmplitudes]=Options[SetModeData];
+Options[OverlapSequenceAmplitudes]=Union[{},Options[SetModeData]];
 OverlapSequenceAmplitudes[fit_List,opts:OptionsPattern[]]:=
-Module[{fittime,t,\[Rho],massratio,a,\[Theta],\[Phi],SimModes,QNModesp,QNModesm,
-		ind,ind2,amp,err2,count,i,l,m,mode,qnmp,qnmm,j,lp,mp,np,nplus,
-		cerr,err2i,amps={},err2s={}},
-	{t,\[Rho],amp,{{massratio,a,\[Theta],\[Phi]},SimModes,QNModesp,QNModesm},err2,count}=fit;
-	SetModeData[a,QNModesp,QNModesm,Evaluate@FilterRules[{opts},Options@SetModeData]];
+Module[{fittime,t,massratio,a,\[Theta],\[Phi],SimModes,QNModesp,QNModesm,
+		ind,ind2,\[Rho],amp,err2,count,i,l,m,mode,qnmp,qnmm,j,lp,mp,np,
+		cerr,err2i,amps={},err2s={},NLmodesExist,
+		qnmTemp,fixedGreedyIndex={},FixedModesG={},QQNModes,
+		qnmpSet,qnmmSet,QNModespUnfixed,QNModesmUnfixed,massratioFixed,QNModespFixed,
+		QNModesmFixed,QQNModesFixed={},QQNModesUnfixed={},QQNModes\[Omega]Unfixed,QQNModes\[Omega]Fixed,
+		\[Omega]NL,k,fixedAmp,qqnm,qqnmIndex},
+
+	(* obtain the information of QNMp, QNMm, Quadratic QNM, and fixed modes. 
+	Added for making this function compatible with qudratic QNMs and greedy algorithm.
+	*)
+	{{qnmpSet,qnmmSet,fixedGreedyIndex,FixedModesG},{QNModesp,QNModesm,QQNModes},{t,\[Rho],amp,{{massratio,a,\[Theta],\[Phi]},SimModes,QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed},err2,count}} = FitInfoStruct[fit];
+	If[QQNModes=={},NLmodesExist=False,NLmodesExist=True,NLmodesExist=True];
+	SetModeData[a,qnmpSet,qnmmSet,Evaluate@FilterRules[{opts},Options@SetModeData]];
+	If[Length[FixedModesG]!=0,
+		massratioFixed = fixedGreedyIndex[[-1]];
+		QNModespFixed=QNModesp[[#]]&/@fixedGreedyIndex[[1]];
+		QNModesmFixed=QNModesm[[#]]&/@fixedGreedyIndex[[2]];
+		QQNModesFixed=QQNModes[[#]]&/@fixedGreedyIndex[[3]];
+	];
+	If[NLmodesExist,
+		QQNModes\[Omega]Unfixed=DeleteDuplicates[{#[[1,1]]+#[[2,1]],#[[1,2]]+#[[2,2]],
+				If[#[[1,4]]==1,
+					If[#[[2,4]]==1,
+						KRF\[Omega][#[[1,1]],#[[1,2]],#[[1,3]]]+KRF\[Omega][#[[2,1]],#[[2,2]],#[[2,3]]],
+						KRF\[Omega][#[[1,1]],#[[1,2]],#[[1,3]]]-Conjugate[KRF\[Omega][#[[2,1]],-#[[2,2]],#[[2,3]]]]
+					],
+					If[#[[2,4]]==1,
+						-Conjugate[KRF\[Omega][#[[1,1]],-#[[1,2]],#[[1,3]]]]+KRF\[Omega][#[[2,1]],#[[2,2]],#[[2,3]]],
+						-Conjugate[KRF\[Omega][#[[1,1]],-#[[1,2]],#[[1,3]]]+KRF\[Omega][#[[2,1]],-#[[2,2]],#[[2,3]]]]
+					]
+					]}&/@QQNModesUnfixed];
+		QQNModes\[Omega]Fixed=DeleteDuplicates[{#[[1,1]]+#[[2,1]],#[[1,2]]+#[[2,2]],
+				If[#[[1,4]]==1,
+					If[#[[2,4]]==1,
+						KRF\[Omega][#[[1,1]],#[[1,2]],#[[1,3]]]+KRF\[Omega][#[[2,1]],#[[2,2]],#[[2,3]]],
+						KRF\[Omega][#[[1,1]],#[[1,2]],#[[1,3]]]-Conjugate[KRF\[Omega][#[[2,1]],-#[[2,2]],#[[2,3]]]]
+					],
+					If[#[[2,4]]==1,
+						-Conjugate[KRF\[Omega][#[[1,1]],-#[[1,2]],#[[1,3]]]]+KRF\[Omega][#[[2,1]],#[[2,2]],#[[2,3]]],
+						-Conjugate[KRF\[Omega][#[[1,1]],-#[[1,2]],#[[1,3]]]+KRF\[Omega][#[[2,1]],-#[[2,2]],#[[2,3]]]]
+					]
+					]}&/@QQNModesFixed];
+	];
 	For[ind=1,ind<=Length[t],++ind,
 		fittime=t[[ind]];
 		ind2=If[fittime>=KRFtime[[-1]],Length[KRFtime],If[fittime<=KRFtime[[1]],1,SequencePosition[KRFtime,{x_/;x>=fittime},1][[1,1]]]];
@@ -395,30 +589,77 @@ Module[{fittime,t,\[Rho],massratio,a,\[Theta],\[Phi],SimModes,QNModesp,QNModesm,
 		For[i=1,i<=Length[SimModes],++i,
 			{l,m}=SimModes[[i]];
 			mode=Table[0,Length[KRFtime]];
-			qnmp=SpheroidalHarmonicModes[{l,m},QNModesp];
+			(*contribution to waveform from unfixed QNM plus*)
+			qnmp=SpheroidalHarmonicModes[{l,m},QNModespUnfixed];
 			For[j=1,j<=Length[qnmp],++j,
 				{lp,mp,np}=qnmp[[j]];
 				mode+=If[UseSpheroidalExpansion,
-					WignerD[{l,-m,-mp},\[Phi],\[Theta],0]amp[[ind,Position[QNModesp,qnmp[[j]]][[1,1]]]]KRFYS[l,lp,mp,np]Exp[-I KRF\[Omega][lp,mp,np] KRFtime/massratio],
+					WignerD[{l,-m,-mp},\[Phi],\[Theta],0]amp[[ind,QNMpIndex[QNModespUnfixed,QNModesmUnfixed,qnmp[[j]]]]]KRFYS[l,lp,mp,np]Exp[-I KRF\[Omega][lp,mp,np] KRFtime/massratio],
 					(* Use this version of mode+= to ignore the Spheroidal Harmonic expansion coefficients *)
-					KroneckerDelta[l,lp]amp[[ind,Position[QNModesp,qnmp[[j]]][[1,1]]]]Exp[-I KRF\[Omega][lp,mp,np] KRFtime/massratio]
+					KroneckerDelta[l,lp]amp[[ind,QNMpIndex[QNModespUnfixed,QNModesmUnfixed,qnmp[[j]]]]]Exp[-I KRF\[Omega][lp,mp,np] KRFtime/massratio]
 				];
 			];
-			nplus=Length[QNModesp];
-			qnmm=SpheroidalHarmonicModes[{l,m},QNModesm];
+			(*contribution to waveform from unfixed QNM minus*)
+			qnmm=SpheroidalHarmonicModes[{l,m},QNModesmUnfixed];
 			For[j=1,j<=Length[qnmm],++j,
 				{lp,mp,np}=qnmm[[j]];
 				mode+=If[UseSpheroidalExpansion,
-					(-1)^(l+lp)WignerD[{l,-m,-mp},\[Phi],\[Theta],0]amp[[ind,nplus+Position[QNModesm,qnmm[[j]]][[1,1]]]]Conjugate[KRFYS[l,lp,-mp,np]]Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] KRFtime/massratio],
+					(-1)^(l+lp)WignerD[{l,-m,-mp},\[Phi],\[Theta],0]amp[[ind,QNMmIndex[QNModespUnfixed,QNModesmUnfixed,qnmm[[j]]]]]Conjugate[KRFYS[l,lp,-mp,np]]Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] KRFtime/massratio],
 					(* Use this version of mode+= to ignore the Spheroidal Harmonic expansion coefficients *)
-					KroneckerDelta[l,lp]amp[[ind,nplus+Position[QNModesm,qnmm[[j]]][[1,1]]]]Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] KRFtime/massratio]
+					KroneckerDelta[l,lp]amp[[ind,QNMmIndex[QNModespUnfixed,QNModesmUnfixed,qnmm[[j]]]]]Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] KRFtime/massratio]
 				];
+			];
+			If[NLmodesExist, (*if there are quadratic QNMs*)
+				qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Unfixed];
+				qqnmIndex=Flatten[Position[QQNModes\[Omega]Unfixed,#]&/@qqnm];
+				For[j=1,j<=Length[qqnm],j++,
+					{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)
+					mode+=WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[ind,FindNonlinearIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* KRFtime/massratio]	
+				];
+			];
+			If[Length[FixedModesG]!=0,(*if there are fixed QNMs in the fit results*)
+					(*contribution to waveform from fixed QNM plus and minus*)
+					qnmp=SpheroidalHarmonicModes[{l,m},QNModespFixed];
+					For[j=1,j<=Length[qnmp],++j,
+						{lp,mp,np}=qnmp[[j]];
+						For[k=1,k<=Length[FixedModesG],k++,
+							If[FixedModesG[[k,1]]=={lp,mp,np,1},fixedAmp=FixedModesG[[k,2]];Break[]]
+						];
+						mode+=If[UseSpheroidalExpansion,
+						WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*fixedAmp*KRFYS[l,lp,mp,np]Exp[-I KRF\[Omega][lp,mp,np] KRFtime/massratioFixed],
+					(* Use this version of mode+= to ignore the Spheroidal Harmonic expansion coefficients *)
+						KroneckerDelta[l,lp]*fixedAmp*Exp[-I KRF\[Omega][lp,mp,np] KRFtime/massratioFixed]
+						];
+					];
+					qnmm=SpheroidalHarmonicModes[{l,m},QNModesmFixed];
+					For[j=1,j<=Length[qnmm],++j,
+						{lp,mp,np}=qnmm[[j]];
+						For[k=1,k<=Length[FixedModesG],k++,
+							If[FixedModesG[[k,1]]=={lp,mp,np,-1},fixedAmp=FixedModesG[[k,2]];Break[]]
+						];
+						mode+=If[UseSpheroidalExpansion,
+						(-1)^(l+lp)WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*fixedAmp*Conjugate[KRFYS[l,lp,-mp,np]]Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] KRFtime/massratioFixed],
+						(* Use this version of mode+= to ignore the Spheroidal Harmonic expansion coefficients *)
+						KroneckerDelta[l,lp]*fixedAmp*Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] KRFtime/massratioFixed]
+						];
+					];
+					If[NLmodesExist&&QQNModes\[Omega]Fixed!={}, (*if there are quadratic QNMs*)
+						qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Fixed];
+						qqnmIndex=Flatten[Position[QQNModes\[Omega]Fixed,#]&/@qqnm];
+						For[j=1,j<=Length[qqnm],j++,
+							{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)
+							For[k=1,k<=Length[FixedModesG],k++,
+								If[FixedModesG[[k,1]]==QQNModesFixed[[qqnmIndex[[j]]]],fixedAmp=FixedModesG[[k,2]];Break[]]
+							];
+							mode+=WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*fixedAmp*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* KRFtime/massratioFixed]	
+						];
+					];
 			];
 			mode-=KRFC[l,m];
         	mode=Take[Drop[mode,ind2-1],count[[ind]]];
         	cerr+=Conjugate[mode] . mode;
         ];
-        err2i=Sqrt[err2[[ind]]*Abs[cerr]/(2(Length[SimModes]count[[ind]]-Length[QNModesp]-Length[QNModesm]))];
+        err2i=Sqrt[err2[[ind]]*Abs[cerr]/(2(Length[SimModes]count[[ind]]-Length[QNModespUnfixed]-Length[QNModesmUnfixed]-Length[QQNModesUnfixed]))];
 		AppendTo[amps,#/{1,\[Pi]}&/@AbsArg[amp[[ind]]]];
 		AppendTo[err2s,Transpose[{err2i,If[Im[#]!=0,1,#/\[Pi]]&/@ArcSin[err2i/Abs[amp[[ind]]]]}]];
 	];
@@ -439,6 +680,16 @@ OverlapSequenceCoefMinus[fit_List,qnmm_List]:=Module[
 	qnmmIndex = QNMmIndex[fit[[4,3]],fit[[4,4]],qnmm];
 	If[qnmmIndex==0,Message[OverlapSequenceCoefMinus::Abort];Abort[]];
 	Transpose[fit[[3]]][[qnmmIndex]]
+]
+
+
+(*This is the quadratic mode's version of OverlapSequenceCoefPlus*)
+OverlapSequenceCoefNL[fit_List,qqnm_List]:=Module[
+{qqnmIndex},
+	If[Length[fit[[4]]]<5||Length[Dimensions[fit[[4,5]]]]==1,Message[OverlapSequenceCoefNL::Abort];Abort[]];
+	qqnmIndex = FindNonlinearIndex[fit[[4,3]],fit[[4,4]],fit[[4,5]],qqnm];
+	If[qqnmIndex==0,Message[OverlapSequenceCoefNL::Abort];Abort[]];
+	Transpose[fit[[3]]][[qqnmIndex]]
 ]
 
 
@@ -495,6 +746,162 @@ MergeMaxOverlapSequences[mol1_List,mol2_List]:=
 	DeleteDuplicatesBy[SortBy[Join[mol1,mol2],First],First]
 MergeMaxOverlapSequences[n__,mol1_List,mol2_List]:=
 	MergeMaxOverlapSequences[n,MergeMaxOverlapSequences[mol1,mol2]]
+
+
+SetGreedyModes[qnmpIn_List,qnmmIn_List,NLlist_,FixedModesG_List,param_]:=Module[
+{qnmp=qnmpIn,qnmm=qnmmIn,FixedModes,FixedQNM={},FixedNL={},idxFixedP={},idxFixedM={},idxFixedNL={},FixedQNMp={},FixedQNMm={},i,FixedQnmParamP,FixedQnmParamM,
+FixedNlParamP,FixedNlParamM,idxFixedNlP={},idxFixedNlM={},qnmpFixedNL={},qnmmFixedNL={},qnmpNL={},qnmmNL={},qnmpSet,qnmmSet,
+FixedModesGPM={},FixedModesGP={},FixedModesGM={},FixedModesGNL={},FixedModesGsorted},
+	(*
+	This is a function called by the OverlapFit function to sort out the fixed QNMs from unknown QNMs
+	Limitation: It can only deal with the case that the nonlinear mode pair have no overlap with the QNMs. 
+	For example, we fit quadratic pair {{2,2,0,+},{2,0,0,+}} that contributes to spherical harmonics (2,2).
+	When QNM {2,2,0,+} is also in the fitting set and to be fixed, it can cause problems. 
+	To Do: Solve that limitation issue. 
+	*)
+If[Head[NLlist]==List,If[#[[4]]==1,AppendTo[qnmpNL,#[[1;;3]]],AppendTo[qnmmNL,#[[1;;3]]]]&/@DeleteDuplicates[Flatten[NLlist,1]]];
+(*Separate the fixed QNMs and the fixed nonlinear modes*)
+	FixedModes=#[[1]]&/@FixedModesG;
+	For[i=1,i<=Length[FixedModes],i++,
+		If[Length[FixedModes[[i]]]==4,
+			AppendTo[FixedQNM,FixedModes[[i]]];AppendTo[FixedModesGPM,FixedModesG[[i]]],
+			AppendTo[FixedNL,FixedModes[[i]]];AppendTo[FixedModesGNL,FixedModesG[[i]]]];
+		
+	];
+	(*If[Length[#]==4,AppendTo[FixedQNM,#],AppendTo[FixedNL,#]]&/@FixedModes;*)
+    FixedNL=Sort[#]&/@FixedNL;
+    FixedModesGNL={Sort[#[[1]]],#[[2]]}&/@FixedModesGNL;
+    If[#[[1,4]]==1,AppendTo[FixedModesGP,#],AppendTo[FixedModesGM,#]]&/@FixedModesGPM;
+(*Find the indices for each fixed QNMs*)
+	If[#[[4]]==1,AppendTo[idxFixedP,Flatten[Position[qnmp,#[[1;;3]]]]];AppendTo[FixedQNMp,#[[1;;3]]]
+		,AppendTo[idxFixedM,Flatten[Position[qnmm,#[[1;;3]]]]];AppendTo[FixedQNMm,#[[1;;3]]]]&/@FixedQNM;
+	(*The next two For loop is used to prepare for sorting the FixedModesG to desired order*)
+	For[i=1,i<=Length[FixedModesGP],i++,
+		FixedModesGP[[i]]=Join[idxFixedP[[i]],FixedModesGP[[i]]];
+	];
+	For[i=1,i<=Length[FixedModesGM],i++,
+		FixedModesGM[[i]]=Join[idxFixedM[[i]],FixedModesGM[[i]]];
+	];
+	FixedModesGP=SortBy[FixedModesGP,#[[1]]&];
+	FixedModesGM=SortBy[FixedModesGM,#[[1]]&];
+	FixedModesGP={#[[2]],#[[3]]}&/@FixedModesGP;
+	FixedModesGM={#[[2]],#[[3]]}&/@FixedModesGM;(*Sorting for qnmp and qnmm ends*)
+	
+	FixedQnmParamP={#,param[[2]]}&/@FixedQNMp;
+	FixedQnmParamM={#,param[[2]]}&/@FixedQNMm;
+	idxFixedP=Sort[Flatten[idxFixedP]];
+	idxFixedM=Sort[Flatten[idxFixedM]];
+(*Modify the QNM pairs so that it contains the information of a*)
+	For[i=1,i<=Length[FixedQnmParamP],i++,
+		qnmp[[idxFixedP[[i]]]]=FixedQnmParamP[[i]]];
+	For[i=1,i<=Length[FixedQnmParamM],i++,
+		qnmm[[idxFixedM[[i]]]]=FixedQnmParamM[[i]]];
+	(*If there are fixed nonlinear modes*) 
+	If[Length[FixedNL]!=0, 
+	AppendTo[idxFixedNL,Flatten[Position[NLlist,#]]]&/@ FixedNL;
+	(*Sorting the nonlinear modes in FixedModesG *)
+	For[i=1,i<=Length[FixedModesGNL],i++,
+		FixedModesGNL[[i]]=Join[idxFixedNL[[i]],FixedModesGNL[[i]]];
+	];
+	FixedModesGNL=SortBy[FixedModesGNL,#[[1]]&];
+	FixedModesGNL={#[[2]],#[[3]]}&/@FixedModesGNL;
+	(*Sorting ends*)
+	idxFixedNL=Sort[Flatten[idxFixedNL]];
+	If[#[[4]]==1,AppendTo[qnmpFixedNL,#[[1;;3]]],AppendTo[qnmmFixedNL,#[[1;;3]]]]&/@Flatten[FixedNL,1];
+	qnmpFixedNL=DeleteDuplicates[qnmpFixedNL];
+	qnmmFixedNL=DeleteDuplicates[qnmmFixedNL];
+	AppendTo[idxFixedNlP,Flatten[Position[qnmpNL,#]]]&/@qnmpFixedNL;
+	AppendTo[idxFixedNlM,Flatten[Position[qnmmNL,#]]]&/@qnmmFixedNL;
+	FixedNlParamP={#,param[[2]]}&/@qnmpFixedNL;
+	FixedNlParamM={#,param[[2]]}&/@qnmmFixedNL;
+	For[i=1,i<=Length[FixedNlParamP],i++,
+		qnmpNL[[idxFixedNlP[[i]]]]=FixedNlParamP[[i]]];
+	For[i=1,i<=Length[FixedNlParamM],i++,
+		qnmmNL[[idxFixedNlM[[i]]]]=FixedNlParamM[[i]]]
+	];
+	qnmpSet=DeleteDuplicates[Join[qnmp,qnmpNL]];
+	qnmmSet=DeleteDuplicates[Join[qnmm,qnmmNL]];
+	FixedModesGsorted=Join[FixedModesGP,FixedModesGM,FixedModesGNL];
+	{qnmpSet,qnmmSet,{idxFixedP,idxFixedM,idxFixedNL,param[[1]]},FixedModesGsorted}                     		
+]
+
+
+FitInfoStruct[fit_List]:=Module[{t,\[Rho],amp,fitInfo,err2,count,singularValue,massratio,a,\[Theta],\[Phi],SimModes,QNModesp,QNModesm,
+	greedyInfo,qnmTemp,fixedGreedyIndex={},FixedModesG={},QQNModes,
+	qnmpSet,qnmmSet,QNModespUnfixed,QNModesmUnfixed,massratioFixed,QNModespFixed,
+	QNModesmFixed,QQNModesFixed,QQNModesUnfixed={},InfoTemp,i},
+	(*This function is used to handle different structure of fit outputed by OverlapFit function. 
+	The output of this function can be used in further data analysis. 
+	The fit has a sturcture of {t,\[Rho],amp,fitInfo,err2,count}. 
+	When there is quadratic modes fitted, fitInfo = {{{massratio,a,\[Theta],\[Phi]},SimModes,QNMp,QNMm,QQNModes}}.
+	When the greedy algorithm is applied, fitInfo = {{massratio,a,\[Theta],\[Phi]},SimModes,QNMp,QNMm,QQNModes,greedyInfo}. 
+	greedyInfo is in a form of {{{{l1,m1,n1,\[PlusMinus]1},Subscript[C, l1m1n1]},...},{mass ratio, spin magnitude}}. 
+	*)
+	(*Deal with the situation when fit is obtained with ReturnSingularValues=True *)
+	Switch[Length[fit],
+		6,
+		{t,\[Rho],amp,fitInfo,err2,count}=fit,
+		7,
+		{t,\[Rho],amp,fitInfo,err2,count,singularValue}=fit
+	];
+	(* obtain the information of QNMp, QNMm, Quadratic QNM, and fixed modes. Deal with different output of OverlafFit. 
+	Added for making this function compatible with qudratic QNMs and greedy algorithm.
+	*)
+	Switch[Length[fitInfo],
+			4,
+			(*FixedModesGreedy->False, NLmodesList->False*)
+			{{massratio,a,\[Theta],\[Phi]},SimModes,QNModespUnfixed,QNModesmUnfixed}=fitInfo;
+			QNModesp=QNModespUnfixed;QNModesm=QNModesmUnfixed;
+			qnmpSet=QNModesp;
+			qnmmSet=QNModesm,
+			5,
+			{{massratio,a,\[Theta],\[Phi]},SimModes,QNModespUnfixed,QNModesmUnfixed,InfoTemp}=fitInfo;
+			If[Length[Dimensions[InfoTemp]]==1,
+			(*FixedModesGreedy->List, NLmodesList->False*)
+			greedyInfo=InfoTemp;
+			QNModesp=QNModespUnfixed;QNModesm=QNModesmUnfixed;
+			For[i=1,i<=Length[greedyInfo[[1]]],i++,
+				qnmTemp=greedyInfo[[1,i,1]];
+				Switch[qnmTemp[[4]],
+					1,
+					AppendTo[QNModesp,qnmTemp[[1;;3]]],
+					-1,
+					AppendTo[QNModesm,qnmTemp[[1;;3]]]
+				]
+			];
+			{qnmpSet,qnmmSet,fixedGreedyIndex,FixedModesG}=SetGreedyModes[QNModesp,QNModesm,{},greedyInfo[[1]],greedyInfo[[2]]],
+			(*FixedModesGreedy->False, NLmodesList->List*)
+			QQNModesUnfixed=InfoTemp;	
+			QNModesp=QNModespUnfixed;QNModesm=QNModesmUnfixed;QQNModes=QQNModesUnfixed;
+			{qnmpSet,qnmmSet,fixedGreedyIndex,FixedModesG}=SetGreedyModes[QNModesp,QNModesm,QQNModes,{},{massratio,a}],
+			(*FixedModesGreedy->False, NLmodesList->List*)
+			QQNModesUnfixed=InfoTemp;	
+			QNModesp=QNModespUnfixed;QNModesm=QNModesmUnfixed;QQNModes=QQNModesUnfixed;
+			{qnmpSet,qnmmSet,fixedGreedyIndex,FixedModesG}=SetGreedyModes[QNModesp,QNModesm,QQNModes,{},{massratio,a}]
+			]
+			,
+			6,
+			(*FixedModesGreedy->List, NLmodesList->List*)
+			{{massratio,a,\[Theta],\[Phi]},SimModes,QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,greedyInfo}=fitInfo;
+			QNModesp=QNModespUnfixed;QNModesm=QNModesmUnfixed;QQNModes=QQNModesUnfixed;
+			For[i=1,i<=Length[greedyInfo[[1]]],i++,
+				qnmTemp=greedyInfo[[1,i,1]];
+				Switch[Length[qnmTemp],
+					4,
+					Switch[qnmTemp[[4]],
+					1,
+					AppendTo[QNModesp,qnmTemp[[1;;3]]],
+					-1,
+					AppendTo[QNModesm,qnmTemp[[1;;3]]]
+					],
+					2,
+					AppendTo[QQNModes,qnmTemp]
+				]
+			];
+			{qnmpSet,qnmmSet,fixedGreedyIndex,FixedModesG}=SetGreedyModes[QNModesp,QNModesm,QQNModes,greedyInfo[[1]],greedyInfo[[2]]]	
+		];
+	{{qnmpSet,qnmmSet,fixedGreedyIndex,FixedModesG},{QNModesp,QNModesm,QQNModes},{t,\[Rho],amp,{{massratio,a,\[Theta],\[Phi]},SimModes,QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed},err2,count}}
+]
 
 
 (*FixRPS[rps_]:=Module[
