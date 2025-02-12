@@ -1,7 +1,11 @@
 # KerrRingdown
 
 This repository contains a *Mathematica paclet* called __KerrRingdown\`__ for fitting a Numerical Relativity ring-down signal as a linear combination of Quasinormal modes.
-The various fitting methods implemented in this package are based on the methods outlined in [Cook (2020)](https://link.aps.org/doi/10.1103/PhysRevD.102.024027) and [Gao and Cook (2024)]().  Please see these reference for details and cite these references when publishing results based on these packages.
+The various fitting methods implemented in this package are based on the methods outlined in [Cook (2020)](https://link.aps.org/doi/10.1103/PhysRevD.102.024027) and [Gao, Cook, et al (2025)]().  Please see these reference for details and cite these references when publishing results based on these packages.
+
+Version 1.0.0 contains all of the functionality described in [Cook (2020)](https://link.aps.org/doi/10.1103/PhysRevD.102.024027), plus some additional functionality described in [Gao, Cook, et al (2025)]().  This version of the code was used in the comparison paper [Magaña Zertuche, Gao, Finch, and Cook (2025)](https://arxiv.org/abs/2502.03155), and includes full documentation.
+
+Version 1.1.0 adds additional funtionality and was used in [Gao, Cook, et al (2025)]().  In particular, *Greedy fitting* and limited fitting of *quadratic modes* are now fully implemented in this release.  However, the Mathematica-Style Documentation of these two new features has not yet been added.  Please look for these in a future update.
 
 ---
 ## Paclet
