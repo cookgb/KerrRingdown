@@ -5,7 +5,7 @@ PacletObject[
     "Name" -> "KerrRingdown",
     "Description" -> "Kerr Ringdown Fitting Paclet",
     "Creator" -> "Leda Gao and Gregory B. Cook",
-    "Version" -> "1.0.0",
+    "Version" -> "1.1.0",
     "WolframVersion" -> "12.1+",
     "PublisherID" -> None,
     "License" -> "MIT",
