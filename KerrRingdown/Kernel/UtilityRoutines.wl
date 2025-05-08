@@ -24,7 +24,7 @@ QNModes::usage=
 "Create a list of all valid QNM triplets for a single "<>
 "value or a range of values of l, and for a single "<>
 "value or range of overtones n.\n"<>
-"QNModes[l,n] "<>
+"QNModes[l,m,n] "<>
 "Same as QNModes[l,n] except that the list is restricted "<>
 "to the specified value or range of values for m."
 
@@ -60,8 +60,13 @@ SphericalHarmonicModes::usage=
 "with the QNM specified by {l,m,n}"
 
 
-SphericalHarmonicModesNL::Abort="Invalid Quadratic Modes: `1`";
-SphericalHarmonicModesNL::usage=""
+SphericalHarmonicModesQQ::Abort="Invalid Quadratic Modes: `1`";
+SphericalHarmonicModesQQ::usage=
+"SphericalHarmonicModesQQ[{l,m,\[Omega]},smodes] "<>
+"Select the subset of signal modes in the list "<>
+"smodes that can overlap "<>
+"with the quadratic mode specified by "<>
+"{l,m,\[Omega]}"
 
 
 SpheroidalHarmonicModes::Abort="Invalid simulation mode : `1`";
@@ -72,8 +77,12 @@ SpheroidalHarmonicModes::usage=
 "with the signal mode specified by {l,m}."
 
 
-SpheroidalHarmonicModesNL::Abort="Invalid simulation mode : `1`";
-SpheroidalHarmonicModesNL::usage=""
+SpheroidalHarmonicModesQQ::Abort="Invalid simulation mode : `1`";
+SpheroidalHarmonicModesQQ::usage=
+"SpheroidalHarmonicModesQQ[{l,m},qqmodes] "<>
+"Select the subset of quadratic modes in the list "<>
+"qqmodes that can overlap "<>
+"with the signal mode specified by {l,m}."
 
 
 FitMode::usage=
@@ -81,7 +90,7 @@ FitMode::usage=
 "This function uses the output \!\(\*StyleBox[\"fit\", \"TI\"]\) from OverlapFit to "<>
 "reconstruct the GW waveform corresponding to signal "<>
 "mode \!\(\*FormBox[\(\*SubscriptBox[\(C\), \(\*SubscriptBox[\(l\), \(s\)] \*SubscriptBox[\(m\), \(s\)]\)](t)\),
-TraditionalForm]\), based on the QNM expansion coefficients "<>
+TraditionalForm]\), based on the QNM and quadratic mode expansion coefficients "<>
 "fit at time \!\(\*SubscriptBox[\(t\), \(i\)]\)."
 
 
@@ -126,7 +135,7 @@ Add\[Delta]\[Chi]LinesandLabel::usage=
 OverlapSequenceAmplitudes::badmodel="Model information in fitinfo has wrong length";
 OverlapSequenceAmplitudes::usage=
 "OverlapSequenceAmplitudes[fit] "<>
-"Returns the QNM expansion coefficients and their standard errors for "<>
+"Returns the QNM and quadratic mode expansion coefficients and their standard errors for "<>
 "each mode from an OverlapFit result "<>
 "\!\(\*StyleBox[\"fit\", \"TI\"]\). The results are presented as amplitudes and phases."
 
@@ -147,23 +156,28 @@ OverlapSequenceCoefMinus::usage=
 "\!\(\*SubsuperscriptBox[\(C\), \(lmn\), \(-\)]\)(t) from an OverlapFit result fit"
 
 
-OverlapSequenceCoefNL::Abort="Quadratic mode input does not exist in OverlapFit result \!\(\*
+OverlapSequenceCoefQQ::Abort="Quadratic mode input does not exist in OverlapFit result \!\(\*
 StyleBox[\"fit\",\nFontSlant->\"Italic\"]\). "
-OverlapSequenceCoefMinus::usage=""
+OverlapSequenceCoefQQ::usage=
+"OverlapSequenceCoefQQ[fit,{{\!\(\*SubscriptBox[\(l\), \(1\)]\),\!\(\*SubscriptBox[\(m\), \(1\)]\),\!\(\*SubscriptBox[\(n\), \(1\)]\),\[PlusMinus]1},{\!\(\*SubscriptBox[\(l\), \(2\)]\),\!\(\*SubscriptBox[\(m\), \(2\)]\),\!\(\*SubscriptBox[\(n\), \(2\)]\),\[PlusMinus]1}}] "<>
+"Returns the time sequence of the complex quadratic mode expansion coefficient "<>
+"\!\(\*FormBox[\(\*SubscriptBox[\(C\), \(\(\*SubscriptBox[\(l\), \(1\)] \*SubscriptBox[\(m\), \(1\)] \*SubscriptBox[\(n\), \(1\)] \[PlusMinus] \(\(\[Cross]\)\*SubscriptBox[\(l\), \(2\)]\) \*SubscriptBox[\(m\), \(2\)] \*SubscriptBox[\(n\), \(2\)]\)\(\[PlusMinus]\)\)](t)\),
+TraditionalForm]\) "<>
+"from an OverlapFit result fit."
 
 
 MOSAmp::usage=
 "MOSAmp[ampdata,index] "<>
-"returns a list appropriate for plotting QNM amplitudes as a "<>
-"function of time for the QNM specified by index.  The data "<>
+"returns a list appropriate for plotting QNM or quadratic mode amplitudes as a "<>
+"function of time for the mode specified by index.  The data "<>
 "is taken from ampdat as returned by "<>
 "MaxOverlapSequenceAmplitudes."
 
 
 MOSPhase::usage=
 "MOSPhase[ampdata,index] "<>
-"returns a list appropriate for plotting scaled QNM phases "<>
-"(\[Phi]/\[Pi]) as a function of time for the QNM specified by index.  "<>
+"returns a list appropriate for plotting scaled QNM or quadratic mode phases "<>
+"(\[Phi]/\[Pi]) as a function of time for the mode specified by index.  "<>
 "The data is taken from ampdat as returned by "<>
 "MaxOverlapSequenceAmplitudes."
 
@@ -185,7 +199,12 @@ MergeMaxOverlapSequences::usage=
 "entries are removed."
 
 
-FindNonlinearIndex::usage=""
+QQIndex::usage=
+"QQIndex[QNModesp,QNModesm,QQModes,{{\!\(\*SubscriptBox[\(l\), \(1\)]\),\!\(\*SubscriptBox[\(m\), \(1\)]\),\!\(\*SubscriptBox[\(n\), \(1\)]\),\[PlusMinus]1},{\!\(\*SubscriptBox[\(l\), \(2\)]\),\!\(\*SubscriptBox[\(m\), \(2\)]\),\!\(\*SubscriptBox[\(n\), \(2\)]\),\[PlusMinus]1}}] "<>
+"Return the position index of the specified quadratic mode "<>
+"\!\(\*SubscriptBox[\(C\), \(\(\*SubscriptBox[\(l\), \(1\)] \*SubscriptBox[\(m\), \(1\)] \*SubscriptBox[\(n\), \(1\)] \[PlusMinus] \(\(\[Cross]\)\*SubscriptBox[\(l\), \(2\)]\) \*SubscriptBox[\(m\), \(2\)] \*SubscriptBox[\(n\), \(2\)]\)\(\[PlusMinus]\)\)]\) "<>
+"in the combined lists of QNMs QNModesp and QNModesm, "<>
+"and quadratic modes QQModes."
 
 
 SetGreedyModes::usage=""
@@ -266,7 +285,7 @@ Module[{p},
 ]
 
 
-FindNonlinearIndex[QNModesp_List,QNModesm_List,NLlist_List,NLfind_List]:=Module[{p},
+QQIndex[QNModesp_List,QNModesm_List,NLlist_List,NLfind_List]:=Module[{p},
 p=Position[NLlist,NLfind];
 If[Length[p]==0,0,Length[QNModesp]+Length[QNModesm]+p[[1,1]]]]
 
@@ -281,10 +300,10 @@ Module[{s=-2},
 
 (*This function works the same as the SphericalHarmonicModes but for quadratic modes. *)
 (*qqnm is a list in form of {l,m,\[Omega]}*)
-SphericalHarmonicModesNL[qqnm_List,sim_List]:=
+SphericalHarmonicModesQQ[qqnm_List,sim_List]:=
 Module[{s=-2},
    If[Length[qqnm]!=3,
-      Message[SphericalHarmonicModesNL::Abort,qqnm];Abort[]];
+      Message[SphericalHarmonicModesQQ::Abort,qqnm];Abort[]];
    DeleteDuplicates[Cases[sim,x_/;x[[1]]>=Max[Abs[s],Abs[qqnm[[2]]]]->x]]
 ]
 
@@ -299,10 +318,10 @@ Module[{s=-2},
 
 (*This function works the same as the SpheroidalHarmonicModes but for quadratic modes. *)
 (*qqnm is a list in form of {l,m,\[Omega]}*)
-SpheroidalHarmonicModesNL[sim_List,qqnm_List]:=
+SpheroidalHarmonicModesQQ[sim_List,qqnm_List]:=
 Module[{s=-2},
 	If[Length[sim]!=2||sim[[1]]<Abs[s]||Abs[sim[[2]]]>sim[[1]],
-      Message[SpheroidalHarmonicModesNL::Abort,sim];Abort[]];
+      Message[SpheroidalHarmonicModesQQ::Abort,sim];Abort[]];
     DeleteDuplicates[Cases[Cases[qqnm,x_/;x[[1]]>=Max[Abs[s],Abs[sim[[2]]]]->x],x_/;Abs[x[[2]]]<=sim[[1]]->x]] 
 ]
 
@@ -380,12 +399,12 @@ Module[{t,\[Rho],amp,massratio,a,\[Theta],\[Phi],SimModes,QNModesp,QNModesm,err2
 		];
 	];
 	If[NLmodesExist, (*if there are quadratic QNMs*)
-		qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Unfixed];
+		qqnm=SpheroidalHarmonicModesQQ[{l,m},QQNModes\[Omega]Unfixed];
 		qqnmIndex=Flatten[Position[QQNModes\[Omega]Unfixed,#]&/@qqnm];
 		For[j=1,j<=Length[qqnm],j++,
 			If[MemberQ[omitNL,QQNModesUnfixed[[qqnmIndex[[j]]]]],Continue[]];
 			{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)
-			mode+=WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[ind,FindNonlinearIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* KRFtime/massratio]	
+			mode+=WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[ind,QQIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* KRFtime/massratio]	
 		];
 	];
 	If[Length[FixedModesG]!=0,(*if there are fixed QNMs in the fit results*)
@@ -417,7 +436,7 @@ Module[{t,\[Rho],amp,massratio,a,\[Theta],\[Phi],SimModes,QNModesp,QNModesm,err2
 					];
 			];
 			If[NLmodesExist&&QQNModes\[Omega]Fixed!={}, (*if there are quadratic QNMs*)
-				qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Fixed];
+				qqnm=SpheroidalHarmonicModesQQ[{l,m},QQNModes\[Omega]Fixed];
 				qqnmIndex=Flatten[Position[QQNModes\[Omega]Fixed,#]&/@qqnm];
 				For[j=1,j<=Length[qqnm],j++,
 					If[MemberQ[omitNL,QQNModesFixed[[qqnmIndex[[j]]]]],Continue[]];
@@ -610,11 +629,11 @@ Module[{fittime,t,massratio,a,\[Theta],\[Phi],SimModes,QNModesp,QNModesm,
 				];
 			];
 			If[NLmodesExist, (*if there are quadratic QNMs*)
-				qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Unfixed];
+				qqnm=SpheroidalHarmonicModesQQ[{l,m},QQNModes\[Omega]Unfixed];
 				qqnmIndex=Flatten[Position[QQNModes\[Omega]Unfixed,#]&/@qqnm];
 				For[j=1,j<=Length[qqnm],j++,
 					{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)
-					mode+=WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[ind,FindNonlinearIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* KRFtime/massratio]	
+					mode+=WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[ind,QQIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* KRFtime/massratio]	
 				];
 			];
 			If[Length[FixedModesG]!=0,(*if there are fixed QNMs in the fit results*)
@@ -644,7 +663,7 @@ Module[{fittime,t,massratio,a,\[Theta],\[Phi],SimModes,QNModesp,QNModesm,
 						];
 					];
 					If[NLmodesExist&&QQNModes\[Omega]Fixed!={}, (*if there are quadratic QNMs*)
-						qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Fixed];
+						qqnm=SpheroidalHarmonicModesQQ[{l,m},QQNModes\[Omega]Fixed];
 						qqnmIndex=Flatten[Position[QQNModes\[Omega]Fixed,#]&/@qqnm];
 						For[j=1,j<=Length[qqnm],j++,
 							{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)
@@ -684,11 +703,11 @@ OverlapSequenceCoefMinus[fit_List,qnmm_List]:=Module[
 
 
 (*This is the quadratic mode's version of OverlapSequenceCoefPlus*)
-OverlapSequenceCoefNL[fit_List,qqnm_List]:=Module[
+OverlapSequenceCoefQQ[fit_List,qqnm_List]:=Module[
 {qqnmIndex},
-	If[Length[fit[[4]]]<5||Length[Dimensions[fit[[4,5]]]]==1,Message[OverlapSequenceCoefNL::Abort];Abort[]];
-	qqnmIndex = FindNonlinearIndex[fit[[4,3]],fit[[4,4]],fit[[4,5]],qqnm];
-	If[qqnmIndex==0,Message[OverlapSequenceCoefNL::Abort];Abort[]];
+	If[Length[fit[[4]]]<5||Length[Dimensions[fit[[4,5]]]]==1,Message[OverlapSequenceCoefQQ::Abort];Abort[]];
+	qqnmIndex = QQIndex[fit[[4,3]],fit[[4,4]],fit[[4,5]],qqnm];
+	If[qqnmIndex==0,Message[OverlapSequenceCoefQQ::Abort];Abort[]];
 	Transpose[fit[[3]]][[qqnmIndex]]
 ]
 
@@ -849,7 +868,7 @@ FitInfoStruct[fit_List]:=Module[{t,\[Rho],amp,fitInfo,err2,count,singularValue,m
 	*)
 	Switch[Length[fitInfo],
 			4,
-			(*FixedModesGreedy->False, NLmodesList->False*)
+			(*FixedModesGreedy->False, QQmodes->False*)
 			{{massratio,a,\[Theta],\[Phi]},SimModes,QNModespUnfixed,QNModesmUnfixed}=fitInfo;
 			QNModesp=QNModespUnfixed;QNModesm=QNModesmUnfixed;
 			qnmpSet=QNModesp;
@@ -857,7 +876,7 @@ FitInfoStruct[fit_List]:=Module[{t,\[Rho],amp,fitInfo,err2,count,singularValue,m
 			5,
 			{{massratio,a,\[Theta],\[Phi]},SimModes,QNModespUnfixed,QNModesmUnfixed,InfoTemp}=fitInfo;
 			If[Length[Dimensions[InfoTemp]]==1,
-			(*FixedModesGreedy->List, NLmodesList->False*)
+			(*FixedModesGreedy->List, QQmodes->False*)
 			greedyInfo=InfoTemp;
 			QNModesp=QNModespUnfixed;QNModesm=QNModesmUnfixed;
 			For[i=1,i<=Length[greedyInfo[[1]]],i++,
@@ -870,18 +889,18 @@ FitInfoStruct[fit_List]:=Module[{t,\[Rho],amp,fitInfo,err2,count,singularValue,m
 				]
 			];
 			{qnmpSet,qnmmSet,fixedGreedyIndex,FixedModesG}=SetGreedyModes[QNModesp,QNModesm,{},greedyInfo[[1]],greedyInfo[[2]]],
-			(*FixedModesGreedy->False, NLmodesList->List*)
+			(*FixedModesGreedy->False, QQmodes->List*)
 			QQNModesUnfixed=InfoTemp;	
 			QNModesp=QNModespUnfixed;QNModesm=QNModesmUnfixed;QQNModes=QQNModesUnfixed;
 			{qnmpSet,qnmmSet,fixedGreedyIndex,FixedModesG}=SetGreedyModes[QNModesp,QNModesm,QQNModes,{},{massratio,a}],
-			(*FixedModesGreedy->False, NLmodesList->List*)
+			(*FixedModesGreedy->False, QQmodes->List*)
 			QQNModesUnfixed=InfoTemp;	
 			QNModesp=QNModespUnfixed;QNModesm=QNModesmUnfixed;QQNModes=QQNModesUnfixed;
 			{qnmpSet,qnmmSet,fixedGreedyIndex,FixedModesG}=SetGreedyModes[QNModesp,QNModesm,QQNModes,{},{massratio,a}]
 			]
 			,
 			6,
-			(*FixedModesGreedy->List, NLmodesList->List*)
+			(*FixedModesGreedy->List, QQmodes->List*)
 			{{massratio,a,\[Theta],\[Phi]},SimModes,QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,greedyInfo}=fitInfo;
 			QNModesp=QNModespUnfixed;QNModesm=QNModesmUnfixed;QQNModes=QQNModesUnfixed;
 			For[i=1,i<=Length[greedyInfo[[1]]],i++,

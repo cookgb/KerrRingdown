@@ -36,7 +36,7 @@ OverlapFit::usage=
 FitAmplitudesTable::usage=
 "FitAmplitudesTable[fit,\!\(\*SubscriptBox[\(t\), \(i\)]\)] "<>
 "Creates  table of amplitudes and phases, and their standard "<>
-"errors, for each QNM mode at the specified fit-start time \!\(\*SubscriptBox[\(t\), \(i\)]\)."
+"errors, for each QNM and quadratic mode at the specified fit-start time \!\(\*SubscriptBox[\(t\), \(i\)]\)."
 
 
 RestrictOverlap::usage=
@@ -76,14 +76,14 @@ MaximizeOverlap::usage=
 "{\!\(\*SubscriptBox[\(\[Delta]\), \(f\)]\), \!\(\*SubscriptBox[\(\[Chi]\), \(f\)]\), \!\(\*SubscriptBox[\(\[Theta]\), \(f\)]\)} to maximize "<>
 "the overlap \[Rho] for fit-start time index \!\(\*SubscriptBox[\(t\), \(i\)]\).  The signal being "<>
 "fit is specified by \!\(\*StyleBox[\"SimModes\", \"TI\"]\) and the QNM fitting modes are "<>
-"specified by QNModesp and QNModesm.  3-dimensional maximization "<>
+"specified by QNModesp and QNModesm.  Quadratic modes can also be included.  3-dimensional maximization "<>
 "is performed.\n"<>
 "MaximizeOverlap[\!\(\*SubscriptBox[\(\[Delta]\), \(g\)]\),\!\(\*SubscriptBox[\(\[Chi]\), \(g\)]\),\!\(\*SubscriptBox[\(t\), \(i\)]\),SimModes,QNModesp,QNModesm] "<>
 "Find the optimum remnant parameters "<>
 "{\!\(\*SubscriptBox[\(\[Delta]\), \(f\)]\), \!\(\*SubscriptBox[\(\[Chi]\), \(f\)]\), 0} to maximize "<>
 "the overlap \[Rho] for fit-start time index \!\(\*SubscriptBox[\(t\), \(i\)]\).  The signal being "<>
 "fit is specified by \!\(\*StyleBox[\"SimModes\", \"TI\"]\) and the QNM fitting modes are "<>
-"specified by QNModesp and QNModesm.  2-dimensional "<>
+"specified by QNModesp and QNModesm.  Quadratic modes can also be included.  2-dimensional "<>
 "maximization is performed with \[Theta] held fixed at zero"
 
 
@@ -111,7 +111,7 @@ RefineMaxOverlapSequence::usage=
 MaxOverlapSequenceAmplitudes::usage=
 "MaxOverlapSequenceAmplitudes[mos,SimModes,QNModesp,QNModesm] "<>
 "computes the OverlapFit using the the black-hole remnant parameter "<>
-"data at every fit-start time in mos.  The QNM expansion coefficients "<>
+"data at every fit-start time in mos.  The QNM and quadratic mode expansion coefficients "<>
 "and their standard errors are returns and the results are presented "<>
 "as amplitudes and phases."
 
@@ -156,12 +156,12 @@ Module[{},
 ]
 
 
-Options[ComputeInnerProducts]={TEnd->-1,TFinal->-2,T0->1,RestrictToSimulationSubspace->False,FitTimeStride->False,RescaleModes->False,NLmodesList->False};
+Options[ComputeInnerProducts]={TEnd->-1,TFinal->-2,T0->1,RestrictToSimulationSubspace->False,FitTimeStride->False,RescaleModes->False,QQmodes->False};
 ComputeInnerProducts[BHproperties_List,SimModes_List,QNModesp_List,QNModesm_List,FixedGreedyIndex_List,OptionsPattern[]]:=
 Module[{s=-2,Avec={},Belem={},Bpos={},massratio,a,\[Theta],\[Phi],t,ts,nplus,nminus,l,m,n,lp,mp,np,lpp,int,aint,rescalelist={},
 		ind0=OptionValue[T0],indend=OptionValue[TEnd],indf2=OptionValue[TFinal],indf,
 		subspacelpp=OptionValue[RestrictToSimulationSubspace],TimeStride=OptionValue[FitTimeStride],ListLen,TimePos,IndTime,retvec,
-		ResModes = OptionValue[RescaleModes],tr0,tr,NLlist=OptionValue[NLmodesList],QNModesNL,lNL,mNL,\[Omega]NL,lNLp,mNLp,\[Omega]NLp,nNL,
+		ResModes = OptionValue[RescaleModes],tr0,tr,NLlist=OptionValue[QQmodes],QNModesNL,lNL,mNL,\[Omega]NL,lNLp,mNLp,\[Omega]NLp,nNL,
 		fixedMassRatio,tsFixed,trFixed,tsl,trl,count,tsli,trli,tslj,trlj},
 	If[indend<0,indend=Length[KRFtime]+indend+1];
 	If[indf2<0,indf2=Length[KRFtime]+indf2+1];
@@ -243,7 +243,7 @@ Module[{s=-2,Avec={},Belem={},Bpos={},massratio,a,\[Theta],\[Phi],t,ts,nplus,nmi
 			tsl:=tsFixed;trl:=trFixed,
 			tsl:=ts;trl:=tr];
 		{l,m,\[Omega]NL}=Qlmn;(* nonlinear modes*)
-		aint=Total[Take[KRFC@@#,{ind0,indend}]KroneckerDelta[l,#[[1]]]Conjugate[WignerD[{#[[1]],-#[[2]],-m},\[Phi],\[Theta],0]]&/@SphericalHarmonicModesNL[Qlmn,SimModes],Method->"CompensatedSummation"];
+		aint=Total[Take[KRFC@@#,{ind0,indend}]KroneckerDelta[l,#[[1]]]Conjugate[WignerD[{#[[1]],-#[[2]],-m},\[Phi],\[Theta],0]]&/@SphericalHarmonicModesQQ[Qlmn,SimModes],Method->"CompensatedSummation"];
 		int=aint Exp[I Conjugate[\[Omega]NL]tsl];
 		int=Reverse[Take[Accumulate[Reverse[(Drop[int,1]+Drop[int,-1])/2],Method->"CompensatedSummation"],-indf]];
 		If[ResModes,AppendTo[rescalelist,Exp[-Im[\[Omega]NL]*trl]]; int*=rescalelist[[-1]]];
@@ -409,12 +409,12 @@ Module[{s=-2,Avec={},Belem={},Bpos={},massratio,a,\[Theta],\[Phi],t,ts,nplus,nmi
 ]
 
 
-Options[ComputeInnerProducts]={TEnd->-1,TFinal->-2,T0->1,RestrictToSimulationSubspace->False,FitTimeStride->False,RescaleModes->False,NLmodesList->False};
+Options[ComputeInnerProducts]={TEnd->-1,TFinal->-2,T0->1,RestrictToSimulationSubspace->False,FitTimeStride->False,RescaleModes->False,QQmodes->False};
 ComputeInnerProducts[BHproperties_List,SimModes_List,QNModesp_List,QNModesm_List,OptionsPattern[]]:=
 Module[{s=-2,Avec={},Belem={},Bpos={},massratio,a,\[Theta],\[Phi],t,ts,nplus,nminus,l,m,n,lp,mp,np,lpp,int,aint,rescalelist={},
 		ind0=OptionValue[T0],indend=OptionValue[TEnd],indf2=OptionValue[TFinal],indf,
 		subspacelpp=OptionValue[RestrictToSimulationSubspace],TimeStride=OptionValue[FitTimeStride],ListLen,TimePos,IndTime,retvec,
-		ResModes = OptionValue[RescaleModes],tr0,tr,NLlist=OptionValue[NLmodesList],QNModesNL,lNL,mNL,\[Omega]NL,lNLp,mNLp,\[Omega]NLp,nNL},
+		ResModes = OptionValue[RescaleModes],tr0,tr,NLlist=OptionValue[QQmodes],QNModesNL,lNL,mNL,\[Omega]NL,lNLp,mNLp,\[Omega]NLp,nNL},
 	If[indend<0,indend=Length[KRFtime]+indend+1];
 	If[indf2<0,indf2=Length[KRFtime]+indf2+1];
 	If[indf2<indend,Null[],Message[ComputeInnerProducts::TimeError,indf2,indend];Abort[]];
@@ -471,7 +471,7 @@ Module[{s=-2,Avec={},Belem={},Bpos={},massratio,a,\[Theta],\[Phi],t,ts,nplus,nmi
 	,{Qlmn,QNModesm}];
 	If[Head[NLlist]==List,
 	Do[{l,m,\[Omega]NL}=Qlmn;(* nonlinear modes*)
-		aint=Total[Take[KRFC@@#,{ind0,indend}]KroneckerDelta[l,#[[1]]]Conjugate[WignerD[{#[[1]],-#[[2]],-m},\[Phi],\[Theta],0]]&/@SphericalHarmonicModesNL[Qlmn,SimModes],Method->"CompensatedSummation"];
+		aint=Total[Take[KRFC@@#,{ind0,indend}]KroneckerDelta[l,#[[1]]]Conjugate[WignerD[{#[[1]],-#[[2]],-m},\[Phi],\[Theta],0]]&/@SphericalHarmonicModesQQ[Qlmn,SimModes],Method->"CompensatedSummation"];
 		int=aint Exp[I Conjugate[\[Omega]NL]ts];
 		int=Reverse[Take[Accumulate[Reverse[(Drop[int,1]+Drop[int,-1])/2],Method->"CompensatedSummation"],-indf]];
 		If[ResModes,AppendTo[rescalelist,Exp[-Im[\[Omega]NL]*tr]]; int*=rescalelist[[-1]]];
@@ -614,11 +614,11 @@ Module[{s=-2,Avec={},Belem={},Bpos={},massratio,a,\[Theta],\[Phi],t,ts,nplus,nmi
 ]
 
 
-Options[KRFDesignMatrix]={TEnd->-1,TFinal->-2,T0->1,FitTimeStride->False,NLmodesList->False};
+Options[KRFDesignMatrix]={TEnd->-1,TFinal->-2,T0->1,FitTimeStride->False,QQmodes->False};
 KRFDesignMatrix[BHproperties_List,SimModes_List,QNModesp_List,QNModesm_List,OptionsPattern[]]:=
 Module[{dm,massratio,a,\[Theta],\[Phi],t,ts,i,nplus,nminus,l,m,n,
         ind0=OptionValue[T0],indend=OptionValue[TEnd],indf2=OptionValue[TFinal],indf,TimeStride=OptionValue[FitTimeStride],
-        TimePos={},IndTime={},NLlist=OptionValue[NLmodesList],QNModesNL,nNL,lNL,mNL,\[Omega]NL,\[Omega]Info={}},
+        TimePos={},IndTime={},NLlist=OptionValue[QQmodes],QNModesNL,nNL,lNL,mNL,\[Omega]NL,\[Omega]Info={}},
 	{massratio,a,\[Theta],\[Phi]}=BHproperties;
 	t=Take[KRFtime,{ind0,indend}];
 	If[$MinPrecision>0,t=SetPrecision[t,$MinPrecision];{massratio,a,\[Theta],\[Phi]}=SetPrecision[{massratio,a,\[Theta],\[Phi]},$MinPrecision]];
@@ -704,7 +704,7 @@ Module[{prec=OptionValue[SVDWorkingPrecision],tol=OptionValue[Tolerance],returns
 	AvecK,AvecU,Btrans,BmatK,BKelem={},BKpos={},BmatU,BUelem={},BUpos={},BmatC,BCelem={},BCpos={},\[Alpha]mat,
 	BmatCconj,nUnknown,nFixed,PsiPsiU,qnmpInd={},qnmmInd={},FixedCount,UnknownCount,ampTotal={},ampFixed,ampUnknown,
 	rescalelistUnknown,rescalelistFixed,\[Rho]T,(*after that is the variables used for nonlinear modes*)
-	NLlist=OptionValue[NLmodesList],qnmpNL={},qnmmNL={},qnmpSet,qnmmSet,FixedModesNL={},NLInd={},
+	NLlist=OptionValue[QQmodes],qnmpNL={},qnmmNL={},qnmpSet,qnmmSet,FixedModesNL={},NLInd={},
 	paramGreedy,fixedGreedyIndex,Binv,fullMismatch=OptionValue[FullMismatch],\[Rho]2,\[Omega]Info,dmCurr},
 	If[indf2<0,indf2=Length[KRFtime]+indf2+1]; 
 	tr=Take[KRFtime,{ind0,indf2}]/massratio;(*This tr is used for rescaling in least-square*)
@@ -724,7 +724,7 @@ Module[{prec=OptionValue[SVDWorkingPrecision],tol=OptionValue[Tolerance],returns
 		FixedModesG=fixedModesGreedy[[1]];
 		{qnmpSet,qnmmSet,fixedGreedyIndex,FixedModesG}=SetGreedyModes[qnmp\[Delta],qnmm\[Delta],NLlist,FixedModesG,paramGreedy],
 		(*SetGreedyModes can also give out the indicies of fixed modes (fixedGreedyIndex). *)
-		qnmpSet=DeleteDuplicates[Join[qnmp\[Delta],qnmpNL]];
+		qnmpSet=DeleteDuplicates[Join[qnmp\[Delta],qnmpNL]]; (*LEDA: Why are qnmpSet and qnmmSet returnded by SetGreedyModes if their values are not used?*)
 		qnmmSet=DeleteDuplicates[Join[qnmm\[Delta],qnmmNL]],
 		qnmpSet=DeleteDuplicates[Join[qnmp\[Delta],qnmpNL]];
 		qnmmSet=DeleteDuplicates[Join[qnmm\[Delta],qnmmNL]]	
@@ -736,13 +736,13 @@ Module[{prec=OptionValue[SVDWorkingPrecision],tol=OptionValue[Tolerance],returns
 	If[Head[fixedModesGreedy]==List,
 	{Avec,Bmat,PsiPsi,t,count,rescalelist}=ComputeInnerProducts[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,fixedGreedyIndex,
 		T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],RestrictToSimulationSubspace->OptionValue[RestrictToSimulationSubspace]
-		,RescaleModes->OptionValue[RescaleModes],FitTimeStride->OptionValue[FitTimeStride],NLmodesList->OptionValue[NLmodesList]],
+		,RescaleModes->OptionValue[RescaleModes],FitTimeStride->OptionValue[FitTimeStride],QQmodes->OptionValue[QQmodes]],
 	{Avec,Bmat,PsiPsi,t,count,rescalelist}=ComputeInnerProducts[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,
 		T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],RestrictToSimulationSubspace->OptionValue[RestrictToSimulationSubspace]
-		,RescaleModes->OptionValue[RescaleModes],FitTimeStride->OptionValue[FitTimeStride],NLmodesList->OptionValue[NLmodesList]],
+		,RescaleModes->OptionValue[RescaleModes],FitTimeStride->OptionValue[FitTimeStride],QQmodes->OptionValue[QQmodes]],
 	{Avec,Bmat,PsiPsi,t,count,rescalelist}=ComputeInnerProducts[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,
 		T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],RestrictToSimulationSubspace->OptionValue[RestrictToSimulationSubspace]
-		,RescaleModes->OptionValue[RescaleModes],FitTimeStride->OptionValue[FitTimeStride],NLmodesList->OptionValue[NLmodesList]]	
+		,RescaleModes->OptionValue[RescaleModes],FitTimeStride->OptionValue[FitTimeStride],QQmodes->OptionValue[QQmodes]]	
 	];
 		
 	Avec=SetPrecision[Avec,prec];Bmat=SetPrecision[Bmat,prec];PsiPsi=SetPrecision[PsiPsi,prec];
@@ -861,7 +861,7 @@ Module[{prec=OptionValue[SVDWorkingPrecision],tol=OptionValue[Tolerance],returns
 		],
 	(* Least Squares - DesignMatrix method *) 
 		DesignMatrix,
-		{indf,nsims,dm,b,IndTime,\[Omega]Info}=KRFDesignMatrix[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],FitTimeStride->OptionValue[FitTimeStride],NLmodesList->OptionValue[NLmodesList]];
+		{indf,nsims,dm,b,IndTime,\[Omega]Info}=KRFDesignMatrix[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],FitTimeStride->OptionValue[FitTimeStride],QQmodes->OptionValue[QQmodes]];
 		rescalelist={};
 		(*Note that the structure of the rescalelist in DesignMatrix is the transposed rescalelist of other method, e.g., Eigenvalue method and NormalEquation*)
 		Switch[
@@ -939,7 +939,7 @@ Module[{prec=OptionValue[SVDWorkingPrecision],tol=OptionValue[Tolerance],returns
 		],
 	(* Least Squares - NormalEquation method *)
 		NormalEquation,
-		{indf,nsims,dm,b,IndTime,\[Omega]Info}=KRFDesignMatrix[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],FitTimeStride->OptionValue[FitTimeStride],NLmodesList->OptionValue[NLmodesList]];
+		{indf,nsims,dm,b,IndTime,\[Omega]Info}=KRFDesignMatrix[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],FitTimeStride->OptionValue[FitTimeStride],QQmodes->OptionValue[QQmodes]];
 		rescalelist={};
 		nk=Dimensions[dm][[1]];
 		For[i=1,i<=nk,++i,
@@ -1057,13 +1057,13 @@ Module[{prec=OptionValue[SVDWorkingPrecision],
 	If[Length[FixedModesG]!=0,
 	{Avec,Bmat,PsiPsi,tRestrict,count,rescalelist}=ComputeInnerProducts[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,fixedGreedyIndex,
 		T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],RestrictToSimulationSubspace->OptionValue[RestrictToSimulationSubspace]
-		,RescaleModes->OptionValue[RescaleModes],FitTimeStride->OptionValue[FitTimeStride],NLmodesList->QQNModes],
+		,RescaleModes->OptionValue[RescaleModes],FitTimeStride->OptionValue[FitTimeStride],QQmodes->QQNModes],
 	{Avec,Bmat,PsiPsi,tRestrict,count,rescalelist}=ComputeInnerProducts[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,
 		T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],RestrictToSimulationSubspace->OptionValue[RestrictToSimulationSubspace]
-		,RescaleModes->OptionValue[RescaleModes],FitTimeStride->OptionValue[FitTimeStride],NLmodesList->QQNModes],
+		,RescaleModes->OptionValue[RescaleModes],FitTimeStride->OptionValue[FitTimeStride],QQmodes->QQNModes],
 	{Avec,Bmat,PsiPsi,tRestrict,count,rescalelist}=ComputeInnerProducts[{massratio,a,\[Theta],\[Phi]},SimModes,qnmp,qnmm,
 		T0->OptionValue[T0],TFinal->OptionValue[TFinal],TEnd->OptionValue[TEnd],RestrictToSimulationSubspace->OptionValue[RestrictToSimulationSubspace]
-		,RescaleModes->OptionValue[RescaleModes],FitTimeStride->OptionValue[FitTimeStride],NLmodesList->QQNModes]	
+		,RescaleModes->OptionValue[RescaleModes],FitTimeStride->OptionValue[FitTimeStride],QQmodes->QQNModes]	
 	];
 	Avec=SetPrecision[Avec,prec];Bmat=SetPrecision[Bmat,prec];PsiPsi=SetPrecision[PsiPsi,prec];
 	If[Complement[tRestrict,t]!={},Message[RestrictOverlap::TimeStrideError,Complement[tRestrict,t]];Abort[]];
@@ -1224,11 +1224,11 @@ Module[{t,amp,ind,ind2,QNModesp,QNModesm,qnmfixedp,qnmfixedm,massratio,a,\[Theta
 				];
 		];
 		If[NLmodesExist, (*if there are quadratic QNMs*)
-				qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Unfixed];
+				qqnm=SpheroidalHarmonicModesQQ[{l,m},QQNModes\[Omega]Unfixed];
 				qqnmIndex=Flatten[Position[QQNModes\[Omega]Unfixed,#]&/@qqnm];
 				For[j=1,j<=Length[qqnm],j++,
 					{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)
-					mode+=WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[ind,FindNonlinearIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* KRFtime/massratio]					
+					mode+=WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[ind,QQIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* KRFtime/massratio]					
 				];
 		];
 		If[Length[FixedModesG]!=0,(*if there are fixed QNMs in the fit results*)
@@ -1258,7 +1258,7 @@ Module[{t,amp,ind,ind2,QNModesp,QNModesm,qnmfixedp,qnmfixedm,massratio,a,\[Theta
 						];
 					];
 					If[NLmodesExist&&QQNModes\[Omega]Fixed!={}, (*if there are quadratic QNMs*)
-						qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Fixed];
+						qqnm=SpheroidalHarmonicModesQQ[{l,m},QQNModes\[Omega]Fixed];
 						qqnmIndex=Flatten[Position[QQNModes\[Omega]Fixed,#]&/@qqnm];
 						For[j=1,j<=Length[qqnm],j++,
 							{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)
@@ -1341,11 +1341,11 @@ Module[{t,\[Rho],amp,massratio,a,\[Theta],\[Phi],SimModes,QNModesp,QNModesm,coun
 			AppendTo[relamps,Abs[WignerD[{l,-m,-mp},\[Phi],\[Theta],0]amp[[ind,QNMmIndex[QNModespUnfixed,QNModesmUnfixed,Qlmnp]]]Conjugate[KRFYS[l,lp,-mp,np]]Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] t/massratio]]],
 		{Qlmnp,qnmm}];
 		If[NLmodesExist, (*if there are quadratic QNMs*)
-				qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Unfixed];
+				qqnm=SpheroidalHarmonicModesQQ[{l,m},QQNModes\[Omega]Unfixed];
 				qqnmIndex=Flatten[Position[QQNModes\[Omega]Unfixed,#]&/@qqnm];
 				For[j=1,j<=Length[qqnm],j++,
 					{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)
-					AppendTo[relamps, Abs[WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[ind,FindNonlinearIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* t/massratio]]]	
+					AppendTo[relamps, Abs[WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[ind,QQIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* t/massratio]]]	
 				];
 		]
 		,
@@ -1357,11 +1357,11 @@ Module[{t,\[Rho],amp,massratio,a,\[Theta],\[Phi],SimModes,QNModesp,QNModesm,coun
 			AppendTo[relamps,Abs[KroneckerDelta[l,lp]amp[[ind,QNMmIndex[QNModespUnfixed,QNModesmUnfixed,Qlmnp]]]Exp[I Conjugate[KRF\[Omega][lp,-mp,np]] t/massratio]]],
 		{Qlmnp,qnmm}];
 		If[NLmodesExist, (*if there are quadratic QNMs*)
-				qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Unfixed];
+				qqnm=SpheroidalHarmonicModesQQ[{l,m},QQNModes\[Omega]Unfixed];
 				qqnmIndex=Flatten[Position[QQNModes\[Omega]Unfixed,#]&/@qqnm];
 				For[j=1,j<=Length[qqnm],j++,
 					{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)
-					AppendTo[relamps, Abs[WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[ind,FindNonlinearIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* t/massratio]]]	
+					AppendTo[relamps, Abs[WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[ind,QQIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* t/massratio]]]	
 				];
 		]
 	];
@@ -1662,11 +1662,11 @@ Module[{fittime,massratio,a,\[Theta],ind,ind2,fit,amp,err2,count,
 				];
 			];
 			If[NLmodesExist, (*if there are quadratic QNMs*)
-				qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Unfixed];
+				qqnm=SpheroidalHarmonicModesQQ[{l,m},QQNModes\[Omega]Unfixed];
 				qqnmIndex=Flatten[Position[QQNModes\[Omega]Unfixed,#]&/@qqnm];
 				For[j=1,j<=Length[qqnm],j++,
 					{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)
-					mode+=WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[FindNonlinearIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* KRFtime/massratio]	
+					mode+=WignerD[{l,-m,-mp},\[Phi],\[Theta],0]*amp[[QQIndex[QNModespUnfixed,QNModesmUnfixed,QQNModesUnfixed,QQNModesUnfixed[[qqnmIndex[[j]]]]]]]*KroneckerDelta[l,lp]Exp[-I \[Omega]NL* KRFtime/massratio]	
 				];
 			];
 			If[Length[FixedModesG]!=0,(*if there are fixed QNMs in the fit results*)
@@ -1696,7 +1696,7 @@ Module[{fittime,massratio,a,\[Theta],ind,ind2,fit,amp,err2,count,
 						];
 					];
 					If[NLmodesExist&&QQNModes\[Omega]Fixed!={}, (*if there are quadratic QNMs*)
-						qqnm=SpheroidalHarmonicModesNL[{l,m},QQNModes\[Omega]Fixed];
+						qqnm=SpheroidalHarmonicModesQQ[{l,m},QQNModes\[Omega]Fixed];
 						qqnmIndex=Flatten[Position[QQNModes\[Omega]Fixed,#]&/@qqnm];
 						For[j=1,j<=Length[qqnm],j++,
 							{lp,mp,\[Omega]NL}=qqnm[[j]];(* nonlinear modes*)

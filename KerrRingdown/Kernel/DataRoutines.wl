@@ -49,7 +49,7 @@ Protect[T0,TEnd,TFinal,Width,DataType,SXS,SXSCCE,SXSRNext,WaveformType,Psi4,Metr
 		FrameType,Extrapolated,Superrest,CoM,Mem,\[Delta]f,\[Chi]f,\[Theta]f,FitAngle,SVDWorkingPrecision,InitialGuess,
 		CheckUpdate,Errors,UseLeastSquares,NormalEquation,ReturnSingularValues,
 		Log10MisMatchRange,OmitModes,RestrictToSimulationSubspace,RotateFrame,FitTimeStride,RescaleModes,
-		NLmodesList,FixedModesGreedy,FullMismatch];
+		QQmodes,FixedModesGreedy,FullMismatch];
 
 
 Begin["`Private`"]
