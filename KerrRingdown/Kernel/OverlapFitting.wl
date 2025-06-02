@@ -729,7 +729,7 @@ Module[{prec=OptionValue[SVDWorkingPrecision],tol=OptionValue[Tolerance],returns
 		qnmpSet=DeleteDuplicates[Join[qnmp\[Delta],qnmpNL]];
 		qnmmSet=DeleteDuplicates[Join[qnmm\[Delta],qnmmNL]]	
 	];
-	SetModeData[a,qnmpSet,qnmmSet,Evaluate@FilterRules[{opts},Options@SetModeData]];	
+	SetModeData[a,qnmpSet,qnmmSet,PhaseChoice->OptionValue[PhaseChoice],Evaluate@FilterRules[{opts},Options@SetModeData]];	
 	{qnmp,qnmm} = {(Take[#,3]&/@qnmp\[Delta]),(Take[#,3]&/@qnmm\[Delta])};
 	nplus=Length[qnmp];
 	nminus=Length[qnmm];
@@ -1050,7 +1050,7 @@ Module[{prec=OptionValue[SVDWorkingPrecision],
 	omitposm=Table[If[MemberQ[Flatten[Position[qnmm,#]&/@omitm],i],0,1],{i,Length[qnmm]}];
 	omitposnl=Table[If[MemberQ[Flatten[Position[QQNModes,#]&/@omitnl],i],0,1],{i,Length[QQNModes]}];
 	omitpos=Join[omitposp,omitposm,omitposnl];
-	SetModeData[a,qnmpSet,qnmmSet,Evaluate@FilterRules[{opts},Options@SetModeData]];
+	SetModeData[a,qnmpSet,qnmmSet,PhaseChoice->OptionValue[PhaseChoice],Evaluate@FilterRules[{opts},Options@SetModeData]];
 	nplus=Length[qnmp];
 	nminus=Length[qnmm];
 	If[QQNModes=={},QQNModes=False];
